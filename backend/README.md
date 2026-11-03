@@ -51,7 +51,8 @@ Backend NestJS cho **Hệ thống quản lý tour du lịch**.
 ## Khởi tạo dữ liệu role / permission / admin
 
 ```bash
-# tạo database từ database/database.sql trước, cấu hình .env, rồi:
+# tạo database MySQL trống, cấu hình .env, rồi:
+$ npm run db:sync
 $ npm run db:seed
 ```
 

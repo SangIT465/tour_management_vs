@@ -3,12 +3,13 @@
  *
  * Cách dùng (trong thư mục `backend/`):
  *   npm run db:check              # chỉ kiểm tra kết nối + đếm bảng
- *   npm run db:sync -- --force    # XOÁ toàn bộ bảng rồi tạo lại theo entity
+ *   npm run db:sync              # tạo schema khi database còn trống
+ *   npm run db:sync -- --force   # XOÁ toàn bộ bảng rồi tạo lại theo entity
  *
  * Thông tin DB lấy từ `.env` giống hệt `app.module.ts` (ConfigModule).
  *
- * Ghi chú: `DB_SYNCHRONIZE=false` trong `.env` là cố ý – dự án dùng migration/schema.sql
- * cho production. Cờ `--force` ở đây chỉ phục vụ việc dựng DB dev từ đầu.
+ * Ghi chú: giữ `DB_SYNCHRONIZE=false` trong `.env`; production cần quản lý schema
+ * bằng migration. Cờ `--force` chỉ phục vụ việc dựng lại DB dev từ đầu.
  */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -18,7 +19,8 @@ import { DataSource } from 'typeorm';
 import { ALL_ENTITIES } from '../src/common/entities/entity-list.js';
 import databaseConfig from '../src/config/database.config.js';
 
-const shouldSync = process.argv.includes('--sync') || process.argv.includes('--force');
+const force = process.argv.includes('--force');
+const shouldSync = process.argv.includes('--sync') || force;
 
 @Module({
   imports: [
@@ -65,8 +67,14 @@ async function bootstrap(): Promise<void> {
     console.log(`  entities : ${ALL_ENTITIES.length} (khai báo trong ALL_ENTITIES)`);
 
     if (shouldSync) {
-      console.log('\nĐang tạo schema từ entity (drop + create)...');
-      await dataSource.synchronize(true);
+      const [{ count }] = (await dataSource.query(
+        'SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = DATABASE()',
+      )) as { count: number | string }[];
+      if (Number(count) > 0 && !force) {
+        throw new Error('Database đã có bảng. Dừng đồng bộ để giữ dữ liệu; dùng migration để cập nhật schema. Chỉ thêm --force nếu muốn XÓA toàn bộ dữ liệu.');
+      }
+      console.log(force ? '\nĐang xoá và tạo lại schema từ entity...' : '\nĐang tạo schema từ entity cho database trống...');
+      await dataSource.synchronize(force);
       console.log('Đồng bộ schema: OK');
     }
 
@@ -80,7 +88,7 @@ async function bootstrap(): Promise<void> {
     }
 
     if (!shouldSync && tables.length === 0) {
-      console.log('\nDB đang trống. Chạy `npm run db:sync -- --force` để tạo toàn bộ bảng từ entity.');
+      console.log('\nDB đang trống. Chạy `npm run db:sync` để tạo toàn bộ bảng từ entity.');
     }
   } finally {
     await app.close();
