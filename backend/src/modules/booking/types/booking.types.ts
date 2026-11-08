@@ -40,17 +40,7 @@ export interface InvoiceView {
   number: string;
   issuedAt: Date;
   pdfUrl: string | null;
-  snapshot: {
-    customerName: string;
-    customerEmail: string;
-    customerPhone: string;
-    tourName: string;
-    startDate: string;
-    lines: { description: string; quantity: number; unitPrice: number; amount: number }[];
-    subtotal: number;
-    discount: number;
-    total: number;
-  };
+  snapshot: import('../entities/invoice.entity.js').InvoiceSnapshot;
 }
 
 /** Booking dạng danh sách – danh sách không kèm passengers/invoice để nhẹ payload. */

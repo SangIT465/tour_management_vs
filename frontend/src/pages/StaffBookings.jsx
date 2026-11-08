@@ -6,6 +6,7 @@ import { date, money, queryString, statusLabels } from '../utils.js';
 import { bookingActions, bookingStatuses, cancellationBody, validateDateRange } from '../staff-operations.js';
 import { Icon, Pagination, State } from '../components/UI.jsx';
 import { OperationBadge, OperationEmpty, OperationFacts, OperationHeader } from '../components/StaffOperations.jsx';
+import InvoiceButton from '../components/InvoiceButton.jsx';
 
 function BookingDetail({ id, revision, refresh, onClose }) {
   const { can } = useAuth();
@@ -43,6 +44,7 @@ function BookingDetail({ id, revision, refresh, onClose }) {
     {item && <><div className="ops-detail-summary"><div><h3>{item.tourName}</h3><p><Icon name="calendar" size={15} />{date(item.startDate)} – {date(item.endDate)}</p></div><OperationBadge status={item.status} /></div>
       <OperationFacts facts={[[ 'Khách liên hệ', item.contactName ], ['Số điện thoại', item.contactPhone], ['Email', item.contactEmail], ['Ngày đặt', date(String(item.createdAt || '').slice(0, 10))], ['Số hành khách', `${item.passengerCount ?? item.passengers?.length ?? 0} người`], ['Tổng tiền đơn', money(item.total)]]} />
       <div className="ops-price-line"><span>Tạm tính: <strong>{money(item.subtotal)}</strong></span><span>Giảm giá: <strong>{money(item.discount)}</strong></span><span>Thành tiền: <strong>{money(item.total)}</strong></span></div>
+      <InvoiceButton bookingId={id} disabled={!item.invoice} />
       {can('schedule:read') && item.scheduleId && <a className="ops-view ops-open-schedule" href={`#/staff?tab=schedules&schedule=${encodeURIComponent(item.scheduleId)}`}>Xem lịch khởi hành của đơn <Icon name="arrow" size={15} /></a>}<p className="ops-hint">Trạng thái đơn không thay thế kết quả thanh toán. Đối chiếu giao dịch trước khi xác nhận.</p>
       <h3 className="ops-subtitle">Danh sách hành khách</h3><div className="ops-table-scroll"><table className="ops-table"><thead><tr><th>Họ tên</th><th>Ngày sinh</th><th>Loại vé</th><th>Giá vé</th></tr></thead><tbody>{item.passengers?.map(person => <tr key={person.id}><td>{person.fullName}</td><td>{date(person.dob)}</td><td>{{ ADULT: 'Người lớn', CHILD: 'Trẻ em', INFANT: 'Em bé' }[person.type] || person.type}</td><td>{money(person.unitPrice)}</td></tr>)}</tbody></table></div>
       {item.note && <p className="ops-note"><strong>Ghi chú:</strong> {item.note}</p>}

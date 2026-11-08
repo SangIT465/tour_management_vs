@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { EntityManager, Repository } from 'typeorm';
-import { PromotionType } from '../../common/enums/index.js';
+import { BookingStatus, PromotionType } from '../../common/enums/index.js';
+import { Booking } from '../booking/entities/booking.entity.js';
 import type {
   CreatePromotionDto,
   QueryPromotionsDto,
@@ -23,9 +24,8 @@ import type { PromotionQuoteView, PromotionView } from './types/promotion.types.
  * Service này là nơi **duy nhất** kiểm tra ràng buộc nghiệp vụ của promotion
  * (entity chỉ có `isUsable` / `calculateDiscount` để dùng chung, không tự validate).
  *
- * `BookingService` hiện đọc thẳng repository `Promotion`; ở đây cung cấp thêm
- * `reserveForBooking` / `releaseForBooking` để luồng đặt tour đếm lượt dùng
- * `perUserLimit` một cách nhất quán.
+ * BookingService kiểm tra mã trong transaction READ COMMITTED, khóa dòng mã
+ * trước khi kiểm tra giới hạn từng khách và giữ lượt sử dụng.
  */
 @Injectable()
 export class PromotionService {
@@ -83,8 +83,8 @@ export class PromotionService {
    * Áp thử mã cho một tạm tính – dùng cho nút "Áp dụng" ở trang thanh toán.
    * Không đụng tới `usedCount`, chỉ tính toán.
    */
-  async validate(dto: ValidatePromotionDto): Promise<PromotionQuoteView> {
-    const promotion = await this.findUsableOrFail(dto.code, dto.subtotal);
+  async validate(dto: ValidatePromotionDto, customerId: string): Promise<PromotionQuoteView> {
+    const promotion = await this.findUsableOrFail(dto.code, dto.subtotal, undefined, customerId);
     const discount = promotion.calculateDiscount(dto.subtotal);
     return {
       code: promotion.code,
@@ -133,44 +133,49 @@ export class PromotionService {
   }
 
   async update(id: string, dto: UpdatePromotionDto): Promise<PromotionView> {
-    const promotion = await this.getOrFail(id);
-
-    if (dto.code !== undefined) {
-      const code = this.normalizeCode(dto.code);
-      if (code !== promotion.code) {
-        await this.assertCodeAvailable(code, id);
-        promotion.code = code;
+    return this.withLockedPromotion(id, async (promotion, repo) => {
+      if (dto.usageLimit != null && dto.usageLimit < promotion.usedCount) {
+        throw new BadRequestException('Tổng lượt tối đa không được nhỏ hơn số lượt đã sử dụng');
       }
-    }
 
-    this.assertBusinessRules({
-      type: dto.type ?? promotion.type,
-      value: dto.value ?? promotion.value,
-      validFrom: dto.validFrom ?? promotion.validFrom.toISOString(),
-      validTo: dto.validTo ?? promotion.validTo.toISOString(),
-      usageLimit: dto.usageLimit === undefined ? (promotion.usageLimit ?? null) : dto.usageLimit,
-      perUserLimit: dto.perUserLimit ?? promotion.perUserLimit,
-      maxDiscount: dto.maxDiscount === undefined ? (promotion.maxDiscount ?? null) : dto.maxDiscount,
+      if (dto.code !== undefined) {
+        const code = this.normalizeCode(dto.code);
+        if (code !== promotion.code) {
+          await this.assertCodeAvailable(code, id);
+          promotion.code = code;
+        }
+      }
+
+      this.assertBusinessRules({
+        type: dto.type ?? promotion.type,
+        value: dto.value ?? promotion.value,
+        validFrom: dto.validFrom ?? promotion.validFrom.toISOString(),
+        validTo: dto.validTo ?? promotion.validTo.toISOString(),
+        usageLimit: dto.usageLimit === undefined ? (promotion.usageLimit ?? null) : dto.usageLimit,
+        perUserLimit: dto.perUserLimit ?? promotion.perUserLimit,
+        maxDiscount: dto.maxDiscount === undefined ? (promotion.maxDiscount ?? null) : dto.maxDiscount,
+      });
+
+      if (dto.type !== undefined) promotion.type = dto.type;
+      if (dto.value !== undefined) promotion.value = dto.value;
+      if (dto.maxDiscount !== undefined) promotion.maxDiscount = dto.maxDiscount;
+      if (dto.minOrder !== undefined) promotion.minOrder = dto.minOrder;
+      if (dto.usageLimit !== undefined) promotion.usageLimit = dto.usageLimit;
+      if (dto.perUserLimit !== undefined) promotion.perUserLimit = dto.perUserLimit;
+      if (dto.validFrom !== undefined) promotion.validFrom = new Date(dto.validFrom);
+      if (dto.validTo !== undefined) promotion.validTo = new Date(dto.validTo);
+      if (dto.active !== undefined) promotion.active = dto.active;
+
+      return this.toView(await repo.save(promotion));
     });
-
-    if (dto.type !== undefined) promotion.type = dto.type;
-    if (dto.value !== undefined) promotion.value = dto.value;
-    if (dto.maxDiscount !== undefined) promotion.maxDiscount = dto.maxDiscount;
-    if (dto.minOrder !== undefined) promotion.minOrder = dto.minOrder;
-    if (dto.usageLimit !== undefined) promotion.usageLimit = dto.usageLimit;
-    if (dto.perUserLimit !== undefined) promotion.perUserLimit = dto.perUserLimit;
-    if (dto.validFrom !== undefined) promotion.validFrom = new Date(dto.validFrom);
-    if (dto.validTo !== undefined) promotion.validTo = new Date(dto.validTo);
-    if (dto.active !== undefined) promotion.active = dto.active;
-
-    return this.toView(await this.promotionRepo.save(promotion));
   }
 
   /** Bật/tắt nhanh – không cần gửi cả body. */
   async setActive(id: string, active: boolean): Promise<PromotionView> {
-    const promotion = await this.getOrFail(id);
-    promotion.active = active;
-    return this.toView(await this.promotionRepo.save(promotion));
+    return this.withLockedPromotion(id, async (promotion, repo) => {
+      promotion.active = active;
+      return this.toView(await repo.save(promotion));
+    });
   }
 
   /**
@@ -178,14 +183,16 @@ export class PromotionService {
    * liên kết `bookings.promotion_id` với dữ liệu lịch sử; mã đã dùng thì tắt `active`.
    */
   async remove(id: string): Promise<void> {
-    const promotion = await this.getOrFail(id);
-    if (promotion.usedCount > 0) {
-      throw new ConflictException(
-        `Mã ${promotion.code} đã được dùng ${promotion.usedCount} lượt – hãy tắt (active = false) thay vì xóa`,
-      );
-    }
-    await this.promotionRepo.remove(promotion);
-    this.logger.log(`Xóa mã khuyến mãi ${promotion.code}`);
+    await this.withLockedPromotion(id, async (promotion, repo) => {
+      const hasHistory = await repo.manager.getRepository(Booking).existsBy({ promotionId: id });
+      if (promotion.usedCount > 0 || hasHistory) {
+        throw new ConflictException(
+          `Mã ${promotion.code} đã gắn với đơn đặt tour – hãy tắt (active = false) thay vì xóa`,
+        );
+      }
+      await repo.remove(promotion);
+      this.logger.log(`Xóa mã khuyến mãi ${promotion.code}`);
+    });
   }
 
   // ===== dùng cho module booking =====
@@ -194,10 +201,14 @@ export class PromotionService {
    * Lấy mã còn hợp lệ với `subtotal`; ném 400 kèm lý do cụ thể để FE hiển thị.
    * Đọc trong transaction truyền vào (nếu có) để giữ khóa đọc nhất quán.
    */
-  async findUsableOrFail(code: string, subtotal: number, manager?: EntityManager): Promise<Promotion> {
+  async findUsableOrFail(code: string, subtotal: number, manager?: EntityManager, customerId?: string): Promise<Promotion> {
     const repo = manager ? manager.getRepository(Promotion) : this.promotionRepo;
     const normalized = this.normalizeCode(code);
-    const promotion = await repo.findOne({ where: { code: normalized } });
+    // Serialize reservations of the same code, including the per-customer limit.
+    const promotion = await repo.findOne({
+      where: { code: normalized },
+      ...(manager ? { lock: { mode: 'pessimistic_write' as const } } : {}),
+    });
 
     if (!promotion) throw new BadRequestException(`Mã khuyến mãi ${normalized} không tồn tại`);
     if (!promotion.active) throw new BadRequestException(`Mã khuyến mãi ${normalized} đang bị tắt`);
@@ -212,6 +223,21 @@ export class PromotionService {
       throw new BadRequestException(
         `Mã khuyến mãi ${normalized} yêu cầu đơn tối thiểu ${promotion.minOrder.toLocaleString('vi-VN')}đ`,
       );
+    }
+
+    if (customerId) {
+      // Booking creation uses READ COMMITTED; the promotion lock serializes reservations.
+      const bookings = (manager ?? this.promotionRepo.manager).getRepository(Booking)
+        .createQueryBuilder('booking')
+        .where('booking.promotionId = :promotionId', { promotionId: promotion.id })
+        .andWhere('booking.customerId = :customerId', { customerId })
+        .andWhere('booking.status NOT IN (:...released)', {
+          released: [BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.EXPIRED],
+        });
+      const used = await bookings.getCount();
+      if (used >= promotion.perUserLimit) {
+        throw new BadRequestException(`Bạn đã dùng hết ${promotion.perUserLimit} lượt của mã ${normalized}`);
+      }
     }
 
     return promotion;
@@ -247,6 +273,16 @@ export class PromotionService {
   }
 
   // ===== nội bộ =====
+
+  /** Admin edits share the reservation lock so usedCount cannot be overwritten by stale reads. */
+  private async withLockedPromotion<T>(id: string, work: (promotion: Promotion, repo: Repository<Promotion>) => Promise<T>): Promise<T> {
+    return this.promotionRepo.manager.transaction(async manager => {
+      const repo = manager.getRepository(Promotion);
+      const promotion = await repo.findOne({ where: { id }, lock: { mode: 'pessimistic_write' } });
+      if (!promotion) throw new NotFoundException('Không tìm thấy mã khuyến mãi');
+      return work(promotion, repo);
+    });
+  }
 
   private normalizeCode(code: string): string {
     return code.trim().toUpperCase();

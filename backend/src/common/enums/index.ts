@@ -75,6 +75,7 @@ export enum PaymentMethod {
   MOMO = 'MOMO',
   BANK_TRANSFER = 'BANK_TRANSFER',
   OFFICE = 'OFFICE',
+  NO_CHARGE = 'NO_CHARGE',
 }
 
 export enum PaymentStatus {
@@ -99,6 +100,7 @@ export enum RefundReason {
   REJECTED = 'REJECTED',
   SCHEDULE_CANCELLED = 'SCHEDULE_CANCELLED',
   LATE_PAYMENT = 'LATE_PAYMENT',
+  DUPLICATE_PAYMENT = 'DUPLICATE_PAYMENT',
 }
 
 export enum CancelRequestStatus {

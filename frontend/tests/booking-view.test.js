@@ -29,3 +29,9 @@ test('account layout applies to customer records without taking over public tour
   for (const path of ['/bookings', '/bookings/id', '/payment/id', '/account/security', '/account/overview', '/support']) assert.equal(isAccountPath(path), true);
   for (const path of ['/', '/tours', '/tours/id', '/booking/id', '/admin', '/admin/account', '/login']) assert.equal(isAccountPath(path), false);
 });
+
+test('a fully discounted order is paid only after the server confirms the no-charge transaction', () => {
+  const booking = { status: 'PENDING_CONFIRMATION' };
+  assert.equal(bookingProgress(booking, { paidTotal: 0, outstanding: 0, payments: [] })[1].done, false);
+  assert.equal(bookingProgress(booking, { paidTotal: 0, outstanding: 0, payments: [{ method: 'NO_CHARGE', status: 'SUCCESS' }] })[1].done, true);
+});

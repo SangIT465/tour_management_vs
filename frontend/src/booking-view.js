@@ -1,5 +1,5 @@
 export const passengerLabels = { ADULT: 'Người lớn', CHILD: 'Trẻ em', INFANT: 'Em bé' };
-export const paymentMethodLabels = { BANK_TRANSFER: 'Chuyển khoản ngân hàng', OFFICE: 'Thanh toán tại văn phòng', VNPAY: 'VNPay — giả lập', MOMO: 'MoMo — giả lập' };
+export const paymentMethodLabels = { BANK_TRANSFER: 'Chuyển khoản ngân hàng', OFFICE: 'Thanh toán tại văn phòng', VNPAY: 'VNPay — giả lập', MOMO: 'MoMo — giả lập', NO_CHARGE: 'Không thu tiền (ưu đãi toàn phần)' };
 
 export function passengerGroups(passengers = []) {
   const groups = new Map();
@@ -19,7 +19,7 @@ export function canRequestCancellation(booking) {
 
 export function bookingProgress(booking, payment) {
   const stopped = ['CANCELLED', 'CANCEL_REQUESTED', 'REJECTED', 'EXPIRED'].includes(booking.status);
-  const paid = !!payment && Number(payment.paidTotal) > 0 && Number(payment.outstanding) <= 0;
+  const paid = !!payment && (Number(payment.paidTotal) > 0 || payment.payments?.some(item => item.status === 'SUCCESS' && item.method === 'NO_CHARGE')) && Number(payment.outstanding) <= 0;
   const confirmed = !!booking.confirmedAt || ['CONFIRMED', 'COMPLETED'].includes(booking.status);
   return [
     { label: 'Đặt tour', icon: 'check', done: true, date: booking.createdAt },

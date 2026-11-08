@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BookingModule } from '../booking/booking.module.js';
+import { MailModule } from '../mail/mail.module.js';
 import { Booking } from '../booking/entities/booking.entity.js';
 import { CancelRequest } from '../booking/entities/cancel-request.entity.js';
 import { PaymentEvent } from './entities/payment-event.entity.js';
@@ -24,6 +25,7 @@ import { PAYMENT_GATEWAY } from './services/payment-gateway.interface.js';
   imports: [
     TypeOrmModule.forFeature([Payment, PaymentEvent, Refund, Booking, CancelRequest]),
     BookingModule,
+    MailModule,
   ],
   controllers: [PaymentController],
   providers: [

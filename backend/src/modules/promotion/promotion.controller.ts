@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../../common/auth/permissions.decorator.js';
+import { CurrentUser } from '../../common/auth/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../common/auth/auth.types.js';
 import {
   CreatePromotionDto,
   QueryPromotionsDto,
@@ -40,8 +42,8 @@ export class PromotionController {
     summary: 'Áp thử mã khuyến mãi cho một tạm tính (không trừ lượt)',
     description: 'Trả về số tiền được giảm và tổng phải trả; ném 400 kèm lý do nếu mã không dùng được.',
   })
-  validate(@Body() dto: ValidatePromotionDto) {
-    return this.promotionService.validate(dto);
+  validate(@Body() dto: ValidatePromotionDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.promotionService.validate(dto, user.id);
   }
 
   @Get()

@@ -56,6 +56,7 @@ export interface BookingPaymentsView {
   paidTotal: number;
   refundedTotal: number;
   outstanding: number;
+  receiptEmail: { status: 'PENDING' | 'SENDING' | 'SENT' | 'FAILED'; sentAt: Date | null } | null;
   payments: PaymentView[];
   refunds: RefundView[];
 }

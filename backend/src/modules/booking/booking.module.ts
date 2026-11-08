@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogModule } from '../catalog/catalog.module.js';
-import { Promotion } from '../promotion/entities/promotion.entity.js';
 import { PromotionModule } from '../promotion/promotion.module.js';
 import { DepartureSchedule } from '../schedule/entities/departure-schedule.entity.js';
 import { ScheduleModule } from '../schedule/schedule.module.js';
@@ -11,6 +10,7 @@ import { Booking } from './entities/booking.entity.js';
 import { CancelRequest } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
 import { Passenger } from './entities/passenger.entity.js';
+import { InvoiceService } from './services/invoice.service.js';
 
 /**
  * Đặt tour + hủy + hóa đơn.
@@ -24,13 +24,13 @@ import { Passenger } from './entities/passenger.entity.js';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, Passenger, CancelRequest, Invoice, Promotion, DepartureSchedule]),
+    TypeOrmModule.forFeature([Booking, Passenger, CancelRequest, Invoice, DepartureSchedule]),
     CatalogModule,
     ScheduleModule,
     PromotionModule,
   ],
   controllers: [BookingController],
-  providers: [BookingService],
-  exports: [BookingService],
+  providers: [BookingService, InvoiceService],
+  exports: [BookingService, InvoiceService],
 })
 export class BookingModule { }

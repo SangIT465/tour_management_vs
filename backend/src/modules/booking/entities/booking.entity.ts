@@ -62,6 +62,7 @@ export { BOOKING_TRANSITIONS };
 @Index('uq_bookings_code', ['code'], { unique: true })
 @Index('idx_bookings_schedule', ['scheduleId'])
 @Index('idx_bookings_customer_created', ['customerId', 'createdAt'])
+@Index('idx_bookings_promotion_customer', ['promotionId', 'customerId', 'status'])
 @Index('idx_bookings_status_expires', ['status', 'expiresAt'])
 export class Booking extends BaseEntity {
   /** Mã hiển thị cho khách, vd `BK260001`. */

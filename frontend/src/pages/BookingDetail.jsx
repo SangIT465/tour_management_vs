@@ -4,6 +4,8 @@ import { api, assetUrl } from '../services/api.js';
 import { date, money, statusLabels } from '../utils.js';
 import { bookingProgress, canRequestCancellation, passengerGroups, passengerLabels, paymentMethodLabels } from '../booking-view.js';
 import { Icon, State } from '../components/UI.jsx';
+import InvoiceButton from '../components/InvoiceButton.jsx';
+import PaymentReceiptStatus from '../components/PaymentReceiptStatus.jsx';
 
 const tabs = [['overview', 'Tổng quan'], ['passengers', 'Thông tin hành khách'], ['itinerary', 'Lịch trình'], ['payments', 'Thanh toán'], ['policy', 'Chính sách'], ['support', 'Hỗ trợ']];
 const dateTime = value => value ? new Date(value).toLocaleString('vi-VN') : 'Chưa có thông tin';
@@ -29,16 +31,6 @@ export default function BookingDetail({ id }) {
       await api(`/bookings/${id}/cancel-request`, { method: 'POST', body: { reason: new FormData(event.currentTarget).get('reason') } });
       setCancelOpen(false); refresh();
     } catch (failure) { setError(failure.message); } finally { setBusy(false); }
-  }
-  function downloadInvoice() {
-    // Export only the invoice actually issued by the backend, not a fabricated receipt.
-    const invoice = booking.data.invoice;
-    if (!invoice) return;
-    const blob = new Blob([JSON.stringify(invoice, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = `hoa-don-${invoice.number.replace(/[^a-z0-9_-]/gi, '_')}.json`; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   if (!booking.data) return <><a className="text-button" href="#/bookings">← Về tour của tôi</a><State loading={booking.loading} error={booking.error} retry={refresh} /></>;
   const item = booking.data;
@@ -80,7 +72,7 @@ export default function BookingDetail({ id }) {
       {cancelOpen && canRequestCancellation(item) && <section className="panel order-cancel-form"><h2>Yêu cầu hủy tour</h2><p>Phí hủy được tính theo chính sách áp dụng. CSKH sẽ xử lý yêu cầu; đơn chưa bị hủy ngay khi gửi.</p><form onSubmit={requestCancel}><label>Lý do hủy<textarea name="reason" required minLength={5} maxLength={1000} rows={3} ref={node => { if (node) { node.focus({ preventScroll: true }); node.closest('section').scrollIntoView({ block: 'center' }); } }} /></label>{error && <p className="notice error" role="alert">{error}</p>}<div className="workspace-actions"><button className="btn" disabled={busy}>{busy ? 'Đang gửi...' : 'Gửi yêu cầu hủy'}</button><button className="btn outline" type="button" disabled={busy} onClick={() => setCancelOpen(false)}>Đóng</button></div></form></section>}
     </div><aside className="order-aside">
       <section className="panel order-total"><h2>Tổng thanh toán</h2>{groups.map(group => <div className="order-price-line" key={`${group.type}-${group.unitPrice}`}><span>Giá tour {group.label.toLowerCase()} ({group.quantity} × {money(group.unitPrice)})</span><strong>{money(group.amount)}</strong></div>)}<div className="order-price-line"><span>Tạm tính</span><strong>{money(item.subtotal)}</strong></div>{Number(item.discount) > 0 && <div className="order-price-line"><span>Giảm giá {item.promotionCode || ''}</span><strong className="discount">−{money(item.discount)}</strong></div>}<div className="order-total-line"><h2>Tổng cộng</h2><strong>{money(item.total)}</strong></div></section>
-      <section className="panel order-actions"><a className="btn" href="#/support"><Icon name="headset" />Liên hệ hỗ trợ</a>{item.status === 'PENDING_PAYMENT' && <a className="btn" href={`#/payment/${id}`}><Icon name="wallet" />Thanh toán đơn</a>}<button className="btn outline" disabled={!item.invoice} onClick={downloadInvoice} title={item.invoice ? 'Tải dữ liệu hóa đơn đã phát hành dạng JSON' : 'Hóa đơn chưa được phát hành'}><Icon name="download" />{item.invoice ? 'Tải hóa đơn (JSON)' : 'Chưa có hóa đơn'}</button>{canRequestCancellation(item) && <button className="btn outline" onClick={() => { setCancelOpen(true); setError(''); }}><Icon name="calendar" />Yêu cầu hủy tour</button>}{item.status === 'COMPLETED' && <a className="btn outline" href={`#/reviews?bookingId=${id}`}><Icon name="star" />Đánh giá chuyến đi</a>}<a className="text-button" href={`#/payment/${id}`}>Xem thanh toán & chứng từ</a></section>
+      <section className="panel order-actions"><PaymentReceiptStatus receipt={payment.data?.receiptEmail} email={item.contactEmail} /><a className="btn" href="#/support"><Icon name="headset" />Liên hệ hỗ trợ</a>{item.status === 'PENDING_PAYMENT' && <a className="btn" href={`#/payment/${id}`}><Icon name="wallet" />Thanh toán đơn</a>}<InvoiceButton bookingId={id} disabled={!item.invoice} />{canRequestCancellation(item) && <button className="btn outline" onClick={() => { setCancelOpen(true); setError(''); }}><Icon name="calendar" />Yêu cầu hủy tour</button>}{item.status === 'COMPLETED' && <a className="btn outline" href={`#/reviews?bookingId=${id}`}><Icon name="star" />Đánh giá chuyến đi</a>}<a className="text-button" href={`#/payment/${id}`}>Xem thanh toán & chứng từ</a></section>
       <section className="panel order-help"><span className="order-help-icon"><Icon name="headset" size={25} /></span><div><h2>Cần hỗ trợ?</h2><p>Liên hệ nhân viên để được tư vấn về đơn đặt tour này.</p></div><a href="#/support"><Icon name="headset" size={19} />Gửi yêu cầu hỗ trợ</a></section>
     </aside></div>
   </article>;

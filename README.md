@@ -1,6 +1,7 @@
 # Hệ thống quản lý tour du lịch
 
 Backend NestJS, frontend React/Vite và MySQL. Chạy các lệnh dưới đây từ thư mục dự án.
+Chức năng mã giảm giá, in hóa đơn và email thanh toán: [hướng dẫn cấu hình và sử dụng](docs/PAYMENT_RECEIPTS.md).
 Trên Windows PowerShell, dùng `npm.cmd` nếu `npm` bị chặn bởi execution policy.
 
 ## Cài đặt và khởi tạo lần đầu

@@ -13,6 +13,10 @@ export type InvoiceLine = {
 
 /** Dữ liệu chụp tại thời điểm xuất hóa đơn – không đổi dù khách sửa thông tin sau. */
 export type InvoiceSnapshot = {
+  bookingCode?: string;
+  promotionCode?: string | null;
+  seller?: { name: string; address: string; email: string; phone: string };
+  payment?: { id: string; method: string; reference: string; paidAt: string; amount: number };
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -26,8 +30,7 @@ export type InvoiceSnapshot = {
 
 /**
  * `invoices` – hóa đơn, 1-1 với booking.
- * `number` sinh từ sequence `invoice_seq` (tạo trong migration) để không trùng khi
- * nhiều request xuất hóa đơn đồng thời.
+ * Số hóa đơn dùng UUID; khóa booking và unique index bảo đảm mỗi đơn một hóa đơn.
  */
 @Entity('invoices')
 @Index('uq_invoices_booking', ['bookingId'], { unique: true })

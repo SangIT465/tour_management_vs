@@ -17,6 +17,8 @@
     "start:prod": "node dist/main",
     "lint": "oxlint --type-aware src/ test/",
     "db:build": "tsc -p tsconfig.scripts.json",
+    "db:migrate": "npm run db:build && node dist-scripts/scripts/migrate.js",
+    "mail:test": "npm run db:build && node dist-scripts/scripts/send-test-email.js",
     "db:check": "npm run db:build && node dist-scripts/scripts/check-db.js",
     "db:sync": "npm run db:build && node dist-scripts/scripts/check-db.js --sync",
     "db:seed": "npm run db:build && node dist-scripts/scripts/seed.js",
@@ -27,7 +29,8 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "test:checkout": "vitest run --config ./vitest.config.checkout.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -48,6 +51,7 @@
     "helmet": "^8.3.0",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
+    "nodemailer": "^10.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -64,6 +68,7 @@
     "@types/express": "^5.0.0",
     "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",

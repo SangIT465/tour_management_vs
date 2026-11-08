@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser } from '../../common/auth/auth.types.js';
 import { CurrentUser } from '../../common/auth/current-user.decorator.js';
@@ -55,8 +55,8 @@ export class BookingController {
     summary: 'Báo giá trước khi đặt (cùng thuật toán với lúc tạo booking)',
     description: 'Dùng chung ràng buộc với `POST /bookings`: thiếu/sai `passengers` trả 400 thay vì 500.',
   })
-  quote(@Body() dto: QuoteBookingDto) {
-    return this.bookingService.quote(dto.scheduleId, dto.passengers, dto.promotionCode);
+  quote(@Body() dto: QuoteBookingDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.bookingService.quote(dto.scheduleId, dto.passengers, dto.promotionCode, user.id);
   }
 
   // ===== nhân viên =====
@@ -157,14 +157,22 @@ export class BookingController {
 
   @Post(':id/invoice')
   @RequirePermissions('booking:confirm')
-  @ApiOperation({ summary: 'Xuất hóa đơn cho booking đã xác nhận (idempotent)' })
+  @ApiOperation({ summary: 'Phát hành hóa đơn cho đơn đã nhận đủ thanh toán (idempotent)' })
   issueInvoice(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.bookingService.issueInvoice(id, user);
   }
 
   @Get(':id/invoice')
+  @Header('Cache-Control', 'private, no-store')
   @ApiOperation({ summary: 'Xem hóa đơn của booking' })
   getInvoice(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.bookingService.getInvoice(id, user);
+  }
+
+  @Get(':id/invoice/document')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Bản hóa đơn HTML để xem và in / lưu PDF (có kiểm tra chủ sở hữu)' })
+  invoiceDocument(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bookingService.getInvoiceDocument(id, user);
   }
 }

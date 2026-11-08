@@ -4,6 +4,8 @@ import { api, assetUrl } from '../services/api.js';
 import { date, money, statusLabels } from '../utils.js';
 import { paymentMethodLabels } from '../booking-view.js';
 import { Icon, State } from '../components/UI.jsx';
+import InvoiceButton from '../components/InvoiceButton.jsx';
+import PaymentReceiptStatus from '../components/PaymentReceiptStatus.jsx';
 
 const labels = { PENDING: 'Chờ thanh toán', PROOF_SUBMITTED: 'Chờ đối chiếu chứng từ', SUCCESS: 'Đã thanh toán', FAILED: 'Thất bại', EXPIRED: 'Hết hạn', PARTIALLY_REFUNDED: 'Đã hoàn một phần', REFUNDED: 'Đã hoàn tiền' };
 const methods = [
@@ -20,7 +22,7 @@ export default function Payment({ id }) {
   const [method, setMethod] = useState('BANK_TRANSFER');
   const lock = useRef(false);
   const summary = useApi(`/payments/booking/${id}`, revision);
-  const booking = useApi(`/bookings/${id}`);
+  const booking = useApi(`/bookings/${id}`, revision);
   const info = useApi('/system/settings/public-info');
   const tour = useApi(booking.data?.tourId ? `/tours/${booking.data.tourId}` : null);
   const refresh = () => setRevision(value => value + 1);
@@ -36,7 +38,7 @@ export default function Payment({ id }) {
   function create(event) {
     event.preventDefault();
     if (!canPay) return;
-    act('/payments', { method: 'POST', body: { bookingId: id, method } }, 'Đã tạo giao dịch. Vui lòng làm theo hướng dẫn bên dưới.');
+    act('/payments', { method: 'POST', body: { bookingId: id, method: Number(item.total) === 0 ? 'NO_CHARGE' : method } }, 'Đã tạo giao dịch. Vui lòng làm theo hướng dẫn bên dưới.');
   }
   function proof(event, paymentId) {
     event.preventDefault();
@@ -50,10 +52,10 @@ export default function Payment({ id }) {
     act(`/payments/mock-gateway/pay/${encodeURIComponent(payment.gatewayTxnRef)}`, {}, 'Đã xử lý giao dịch giả lập.');
   }
   const item = summary.data;
-  const canPay = !summary.loading && !summary.error && item?.bookingStatus === 'PENDING_PAYMENT' && Number(item.outstanding) > 0;
+  const canPay = !summary.loading && !summary.error && item?.bookingStatus === 'PENDING_PAYMENT' && (Number(item.outstanding) > 0 || Number(item.total) === 0);
   const bank = info.data?.bank;
   const hasBank = !!(bank?.bankName && bank?.accountName && bank?.accountNumber);
-  const paid = item && Number(item.outstanding) === 0 && Number(item.paidTotal) >= Number(item.total) && Number(item.refundedTotal) === 0;
+  const paid = item && item.payments?.some(payment => payment.status === 'SUCCESS') && Number(item.outstanding) === 0 && Number(item.paidTotal) >= Number(item.total) && Number(item.refundedTotal) === 0;
   const product = tour.data;
   const cover = product?.coverImageUrl || product?.images?.find(image => image.isCover)?.url || product?.images?.[0]?.url;
   const transactions = item?.payments || [];
@@ -65,11 +67,11 @@ export default function Payment({ id }) {
     {notice && <p className="notice payment-notice" role="status">{notice}</p>}{error && <p className="notice error" role="alert">{error}</p>}
     <State loading={summary.loading} error={summary.error} retry={refresh} />
     {item && !summary.loading && !summary.error && <div className="checkout-layout payment-layout"><div className="payment-main">
-      {paid ? <section className="checkout-card payment-outcome"><span><Icon name="check" size={26} /></span><div><h2>Đã ghi nhận đủ thanh toán</h2><p>Trạng thái đơn: {statusLabels[item.bookingStatus] || item.bookingStatus || 'Chưa cập nhật'}. Xem chi tiết đơn để theo dõi chuyến đi.</p><a href={`#/bookings/${id}`}>Xem đơn đặt tour <Icon name="arrow" size={15} /></a></div></section> : !canPay && <section className="checkout-card payment-closed"><Icon name="clock" size={24} /><div><h2>Đơn hiện không thể tạo thanh toán mới</h2><p>Trạng thái: {statusLabels[item.bookingStatus] || item.bookingStatus || 'Chưa cập nhật'}. Vui lòng kiểm tra đơn hoặc liên hệ hỗ trợ.</p></div></section>}
+      {paid ? <section className="checkout-card payment-outcome"><span><Icon name="check" size={26} /></span><div><h2>Đã ghi nhận đủ thanh toán</h2><p>Trạng thái đơn: {statusLabels[item.bookingStatus] || item.bookingStatus || 'Chưa cập nhật'}. Xem chi tiết đơn để theo dõi chuyến đi.</p><a href={`#/bookings/${id}`}>Xem đơn đặt tour <Icon name="arrow" size={15} /></a><PaymentReceiptStatus receipt={item.receiptEmail} email={booking.data?.contactEmail} /><div className="payment-invoice-actions"><InvoiceButton bookingId={id} disabled={!booking.data?.invoice} /></div></div></section> : !canPay && <section className="checkout-card payment-closed"><Icon name="clock" size={24} /><div><h2>Đơn hiện không thể tạo thanh toán mới</h2><p>Trạng thái: {statusLabels[item.bookingStatus] || item.bookingStatus || 'Chưa cập nhật'}. Vui lòng kiểm tra đơn hoặc liên hệ hỗ trợ.</p></div></section>}
       {canPay && <section className="checkout-card"><div className="checkout-card-title"><span><Icon name="wallet" size={20} /></span><div><h2>Chọn phương thức thanh toán</h2><p>Số tiền giao dịch do hệ thống xác định từ đơn đặt tour.</p></div></div>
-        <form className="payment-method-form" onSubmit={create} aria-busy={busy}><fieldset disabled={busy}><legend className="payment-sr-only">Phương thức thanh toán</legend>{methods.map(option => <label className={`payment-method ${method === option.value ? 'selected' : ''}`} key={option.value}><input type="radio" name="method" value={option.value} checked={method === option.value} onChange={() => setMethod(option.value)} /><span className={`payment-method-icon method-${option.value.toLowerCase()}`}><Icon name={option.icon} size={23} /></span><span className="payment-method-copy"><strong>{option.name}{option.mock && <small>Giả lập</small>}</strong><span>{option.text}</span></span></label>)}</fieldset>
+        <form className="payment-method-form" onSubmit={create} aria-busy={busy}>{Number(item.total) === 0 ? <p className="notice">Đơn đã được giảm toàn bộ chi phí. Bấm xác nhận để nhận hóa đơn và email, không cần chuyển tiền.</p> : <fieldset disabled={busy}><legend className="payment-sr-only">Phương thức thanh toán</legend>{methods.map(option => <label className={`payment-method ${method === option.value ? 'selected' : ''}`} key={option.value}><input type="radio" name="method" value={option.value} checked={method === option.value} onChange={() => setMethod(option.value)} /><span className={`payment-method-icon method-${option.value.toLowerCase()}`}><Icon name={option.icon} size={23} /></span><span className="payment-method-copy"><strong>{option.name}{option.mock && <small>Giả lập</small>}</strong><span>{option.text}</span></span></label>)}</fieldset>}
           {transactions.some(payment => ['PENDING', 'PROOF_SUBMITTED'].includes(payment.status)) && <p className="payment-pending-note"><Icon name="clock" size={16} />Bạn có giao dịch đang chờ xử lý. Kiểm tra lịch sử bên dưới trước khi tạo thêm để tránh thanh toán trùng.</p>}
-          <button className="btn full payment-create" type="submit" disabled={busy}>{busy ? 'Đang xử lý...' : 'Tạo giao dịch thanh toán'}<Icon name="arrow" size={17} /></button><p className="payment-small-note">Tạo giao dịch không đồng nghĩa đã thanh toán.</p>
+          <button className="btn full payment-create" type="submit" disabled={busy}>{busy ? 'Đang xử lý...' : Number(item.total) === 0 ? 'Xác nhận đơn miễn phí' : 'Tạo giao dịch thanh toán'}<Icon name="arrow" size={17} /></button><p className="payment-small-note">Tạo giao dịch không đồng nghĩa đã thanh toán.</p>
         </form>
       </section>}
       <section className="checkout-card payment-bank"><div className="checkout-card-title"><span><Icon name="document" size={20} /></span><div><h2>Thông tin chuyển khoản</h2><p>Chỉ chuyển tiền sau khi xác nhận thông tin với CSKH.</p></div></div>

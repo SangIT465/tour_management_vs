@@ -5,6 +5,7 @@ import { api, assetUrl } from '../services/api.js';
 import { date, money } from '../utils.js';
 import { Icon, State } from '../components/UI.jsx';
 import BookingSuccess from '../components/BookingSuccess.jsx';
+import '../invoice.css';
 
 const ticketNames = { ADULT: 'Người lớn', CHILD: 'Trẻ em', INFANT: 'Em bé' };
 export default function Booking({ id, params }) {
@@ -21,6 +22,17 @@ export default function Booking({ id, params }) {
   const [result, setResult] = useState(null);
   const submitting = useRef(false);
   const quoteRef = useRef(null);
+  async function applyPromotion() {
+    if (submitting.current || !schedule || !promotionCode.trim()) return;
+    const form = document.getElementById('tour-booking-form');
+    if (!form?.reportValidity()) return;
+    submitting.current = true; setBusy(true); setError('');
+    try {
+      const result = await api('/bookings/quote', { method: 'POST', body: { scheduleId: schedule.id, passengers, promotionCode: promotionCode.trim().toUpperCase() } });
+      setPromotionCode(result.promotionCode); setQuote(result);
+    } catch (failure) { setError(failure.message); setQuote(null); }
+    finally { setBusy(false); submitting.current = false; }
+  }
   function changePassenger(index, key, value) { setQuote(null); setPassengers(values => values.map((p, i) => i === index ? { ...p, [key]: value } : p)); }
   async function submit(event) {
     event.preventDefault();
@@ -48,7 +60,7 @@ export default function Booking({ id, params }) {
     <div className="checkout-layout"><form id="tour-booking-form" className="booking-form checkout-form" onSubmit={submit} aria-busy={busy}>
       <section className="checkout-card"><div className="checkout-card-title"><span><Icon name="user" size={20} /></span><div><h2>Thông tin liên hệ</h2><p>Thông tin dùng để liên lạc và gửi xác nhận đặt tour.</p></div></div><div className="form-grid"><label>Họ và tên <em>*</em><input name="contactName" defaultValue={user.fullName} disabled={busy} required minLength={2} maxLength={150} autoComplete="name" placeholder="Nhập họ và tên" /></label><label>Số điện thoại <em>*</em><input name="contactPhone" type="tel" defaultValue={user.phone || ''} disabled={busy} required pattern="(0[0-9]{9}|\+84[0-9]{9})" title="10 số bắt đầu bằng 0 hoặc +84 và 9 số" autoComplete="tel" placeholder="0901234567" /></label><label className="span-2">Địa chỉ email <em>*</em><input name="contactEmail" type="email" defaultValue={user.email} disabled={busy} required maxLength={191} autoComplete="email" placeholder="Nhập email liên hệ" /></label></div><div className="checkout-tip"><Icon name="shield" size={16} />Kiểm tra kỹ số điện thoại và email để không bỏ lỡ thông tin chuyến đi.</div></section>
       <section className="checkout-card"><div className="checkout-card-title"><span><Icon name="users" size={20} /></span><div><h2>Thông tin hành khách <b>{passengers.length}</b></h2><p>Loại vé được hệ thống tính theo ngày sinh và ngày khởi hành.</p></div></div>{passengers.map((passenger, index) => <div className="checkout-passenger" key={index}><div className="passenger-heading"><strong><Icon name="user" size={15} />Hành khách {index + 1}</strong>{passengers.length > 1 && <button className="text-button danger" type="button" disabled={busy} onClick={() => { setPassengers(values => values.filter((_, i) => i !== index)); setQuote(null); }} aria-label={`Xóa hành khách ${index + 1}`}>Xóa</button>}</div><div className="form-grid"><label>Họ và tên <em>*</em><input value={passenger.fullName} disabled={busy} onChange={event => changePassenger(index, 'fullName', event.target.value)} minLength={2} maxLength={150} required placeholder="Họ tên theo giấy tờ tùy thân" /></label><label>Ngày sinh <em>*</em><input type="date" value={passenger.dob} disabled={busy} max={today} onChange={event => changePassenger(index, 'dob', event.target.value)} required /></label></div></div>)}<button className="btn outline checkout-add" type="button" disabled={busy || passengers.length >= 30} onClick={() => { setPassengers(values => [...values, { fullName: '', dob: '' }]); setQuote(null); }}>+ Thêm hành khách</button><small className="checkout-limit">Tối đa 30 hành khách / đơn. Chỗ trống được kiểm tra khi báo giá và tạo đơn.</small></section>
-      <section className="checkout-card"><div className="checkout-card-title"><span><Icon name="document" size={20} /></span><div><h2>Thông tin bổ sung</h2><p>Thêm mã ưu đãi hoặc ghi chú cho chuyến đi.</p></div></div><label>Mã ưu đãi <span className="checkout-optional">(không bắt buộc)</span><input value={promotionCode} disabled={busy} maxLength={40} onChange={event => { setPromotionCode(event.target.value); setQuote(null); }} placeholder="Nhập mã ưu đãi của bạn" /></label><label>Ghi chú <span className="checkout-optional">(không bắt buộc)</span><textarea name="note" disabled={busy} maxLength={1000} rows={3} placeholder="Yêu cầu hoặc thông tin thêm cho chuyến đi" /></label></section>
+      <section className="checkout-card"><div className="checkout-card-title"><span><Icon name="document" size={20} /></span><div><h2>Thông tin bổ sung</h2><p>Thêm mã ưu đãi hoặc ghi chú cho chuyến đi.</p></div></div><label>Mã ưu đãi <span className="checkout-optional">(không bắt buộc)</span><span className="promotion-controls"><input value={promotionCode} disabled={busy} maxLength={40} onChange={event => { setPromotionCode(event.target.value.toUpperCase()); setQuote(null); }} placeholder="Nhập mã ưu đãi của bạn" /><button className="btn outline" type="button" disabled={busy || !promotionCode.trim()} onClick={applyPromotion}>Áp dụng</button></span></label>{quote?.promotionCode && <p className="promotion-feedback" role="status">Đã áp dụng <strong>{quote.promotionCode}</strong>: giảm {money(quote.discount)}. <button className="text-button" type="button" disabled={busy} onClick={() => { setPromotionCode(''); setQuote(null); }}>Gỡ mã</button></p>}<label>Ghi chú <span className="checkout-optional">(không bắt buộc)</span><textarea name="note" disabled={busy} maxLength={1000} rows={3} placeholder="Yêu cầu hoặc thông tin thêm cho chuyến đi" /></label></section>
       {error && <p className="notice error" role="alert">{error}</p>}
       <div className="checkout-form-footer"><Icon name="shield" size={19} /><p>Vui lòng xem báo giá trước khi xác nhận. Tạo đơn chưa phải là thanh toán hoặc xác nhận chỗ.</p></div>
     </form>

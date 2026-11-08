@@ -5,6 +5,7 @@ import { api } from '../services/api.js';
 import { columnLabels } from '../management.js';
 import ActionForm from '../components/ActionForm.jsx';
 import { Pagination, State } from '../components/UI.jsx';
+import { localDateTimeInput } from '../forms.js';
 
 export default function Management({ config }) {
   const { can } = useAuth();
@@ -23,7 +24,7 @@ export default function Management({ config }) {
       const detail = config.detail ? await api(`${config.path}/${row[config.key || 'id']}`) : row;
       const initial = { ...detail };
       for (const field of config.fields) {
-        if (field.type === 'datetime-local' && initial[field.name]) initial[field.name] = initial[field.name].slice(0, 16);
+        if (field.type === 'datetime-local' && initial[field.name]) initial[field.name] = localDateTimeInput(initial[field.name]);
       }
       setEditing(initial);
     } catch (error) { setError(error.message); } finally { setBusy(false); }

@@ -20,7 +20,6 @@ import {
 import { BookingChannel, BookingStatus, CancelRequestStatus, PassengerType, ScheduleStatus } from '../../common/enums/index.js';
 import { CancelPolicyService } from '../catalog/services/cancel-policy.service.js';
 import { TourService } from '../catalog/services/tour.service.js';
-import { Promotion } from '../promotion/entities/promotion.entity.js';
 import { PromotionService } from '../promotion/promotion.service.js';
 import { DepartureSchedule } from '../schedule/entities/departure-schedule.entity.js';
 import { SeatHold } from '../schedule/entities/seat-hold.entity.js';
@@ -39,7 +38,8 @@ import { Booking } from './entities/booking.entity.js';
 import { CancelRequest } from './entities/cancel-request.entity.js';
 import type { PolicySnapshot } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
-import type { InvoiceLine, InvoiceSnapshot } from './entities/invoice.entity.js';
+import { InvoiceService } from './services/invoice.service.js';
+import { renderInvoice } from './templates/invoice.template.js';
 import { Passenger } from './entities/passenger.entity.js';
 import type {
   BookingDetailView,
@@ -68,13 +68,13 @@ export class BookingService {
     @InjectRepository(Passenger) private readonly passengerRepo: Repository<Passenger>,
     @InjectRepository(CancelRequest) private readonly cancelRepo: Repository<CancelRequest>,
     @InjectRepository(Invoice) private readonly invoiceRepo: Repository<Invoice>,
-    @InjectRepository(Promotion) private readonly promotionRepo: Repository<Promotion>,
     @InjectRepository(DepartureSchedule) private readonly scheduleRepo: Repository<DepartureSchedule>,
     private readonly scheduleService: ScheduleService,
     private readonly tourService: TourService,
     private readonly cancelPolicyService: CancelPolicyService,
     private readonly promotionService: PromotionService,
     private readonly events: EventEmitter2,
+    private readonly invoices: InvoiceService,
   ) { }
 
   /**
@@ -197,12 +197,13 @@ export class BookingService {
     scheduleId: string,
     passengers: PassengerInputDto[],
     promotionCode?: string,
+    customerId?: string,
   ): Promise<BookingQuote> {
     const schedule = await this.loadScheduleOrFail(scheduleId);
     const priced = this.pricePassengers(schedule, passengers);
     const seatCount = this.countSeats(priced);
 
-    const promotion = promotionCode ? await this.findPromotionOrFail(promotionCode, priced.subtotal) : null;
+    const promotion = promotionCode ? await this.promotionService.findUsableOrFail(promotionCode, priced.subtotal, undefined, customerId) : null;
     const discount = promotion ? promotion.calculateDiscount(priced.subtotal) : 0;
 
     const held = await this.scheduleService.sumActiveHeldSeats(scheduleId);
@@ -238,6 +239,9 @@ export class BookingService {
     options: { asCounter?: boolean } = {},
   ): Promise<BookingDetailView> {
     const counter = options.asCounter === true;
+    if (counter && !actor.permissions.includes('booking:read')) {
+      throw new ForbiddenException('Chỉ nhân viên được tạo đơn tại quầy cho khách hàng');
+    }
     const customerId = await this.resolveCustomerId(dto, actor, counter);
     const schedule = await this.loadScheduleOrFail(dto.scheduleId);
 
@@ -246,17 +250,16 @@ export class BookingService {
     const seatCount = this.countSeats(priced);
     if (seatCount < 1) throw new BadRequestException('Booking phải có ít nhất 1 chỗ');
 
-    const promotion = dto.promotionCode
-      ? await this.findPromotionOrFail(dto.promotionCode, priced.subtotal)
-      : null;
-
-    const id = await this.bookingRepo.manager.transaction(async (manager) => {
+    const id = await this.bookingRepo.manager.transaction('READ COMMITTED', async (manager) => {
       // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
       const hold = dto.holdId
         ? await this.consumeHold(dto.holdId, actor.id, seatCount, manager)
         : await this.scheduleService.holdSeats(schedule.id, actor.id, seatCount, manager);
 
       // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
+      const promotion = dto.promotionCode
+        ? await this.promotionService.findUsableOrFail(dto.promotionCode, priced.subtotal, manager, customerId)
+        : null;
       const booking = manager.create(Booking, {
         code: await this.nextBookingCode(manager),
         scheduleId: schedule.id,
@@ -532,50 +535,27 @@ export class BookingService {
 
   // ===== hóa đơn =====
 
-  /**
-   * Xuất hóa đơn cho booking đã xác nhận.
-   *
-   * `number` sinh từ `MAX(number)` (MySQL không có sequence) và được bảo vệ bởi
-   * unique index `uq_invoices_number` – nếu hai request đua nhau, request thua sẽ
-   * nhận lỗi 1062 và service ném 409 để client thử lại.
-   */
+  /** Idempotent; actual payment is checked by InvoiceService. */
   async issueInvoice(id: string, actor: AuthenticatedUser): Promise<InvoiceView> {
-    const booking = await this.loadFull(id);
-    if (!this.isInvoiceable(booking.status)) {
-      throw new ConflictException('Chỉ xuất hóa đơn cho booking đã xác nhận hoặc đã hoàn thành');
-    }
-
-    const existing = await this.invoiceRepo.findOne({ where: { bookingId: id } });
-    if (existing) return this.toInvoiceView(existing);
-
-    const invoice = await this.invoiceRepo.manager.transaction(async (manager) => {
-      const number = await this.nextInvoiceNumber(manager);
-      const snapshot = this.buildInvoiceSnapshot(booking);
-
-      return manager.save(
-        Invoice,
-        manager.create(Invoice, {
-          bookingId: booking.id,
-          number,
-          issuedAt: new Date(),
-          pdfUrl: null,
-          snapshot,
-        }),
-      );
-    });
-
-    this.logger.log(`Xuất hóa đơn ${invoice.number} cho booking ${booking.code} (bởi ${actor.email})`);
+    await this.getDetail(id, actor);
+    const invoice = await this.invoiceRepo.manager.transaction(manager => this.invoices.issue(id, manager));
     return this.toInvoiceView(invoice);
   }
 
   async getInvoice(id: string, actor: AuthenticatedUser): Promise<InvoiceView> {
-    const booking = await this.loadFull(id);
+    // Historical invoices remain readable even if their tour is later hidden/deleted.
+    const booking = await this.getOrFail(id);
     if (!this.canReadAll(actor) && booking.customerId !== actor.id) {
       throw new ForbiddenException('Bạn không có quyền xem hóa đơn này');
     }
     const invoice = await this.invoiceRepo.findOne({ where: { bookingId: id } });
     if (!invoice) throw new NotFoundException('Booking chưa có hóa đơn');
     return this.toInvoiceView(invoice);
+  }
+
+  async getInvoiceDocument(id: string, actor: AuthenticatedUser) {
+    const invoice = await this.getInvoice(id, actor);
+    return { number: invoice.number, html: renderInvoice(invoice) };
   }
 
   // ===== job nền =====
@@ -751,15 +731,6 @@ export class BookingService {
   }
 
   /**
-   * Kiểm tra mã khuyến mãi qua `PromotionService` (nguồn sự thật duy nhất của
-   * ràng buộc promotion) thay vì đọc thẳng repo, để thông báo lỗi và điều kiện
-   * hợp lệ luôn khớp với module promotion.
-   */
-  private async findPromotionOrFail(code: string, subtotal: number): Promise<Promotion> {
-    return this.promotionService.findUsableOrFail(code, subtotal);
-  }
-
-  /**
    * Nhả lượt dùng mã khi booking không còn giữ chỗ (hủy / từ chối / hết hạn).
    * Chỉ gọi khi booking thực sự có gắn mã để tránh UPDATE vô ích.
    */
@@ -919,22 +890,6 @@ export class BookingService {
     return `${prefix}${String(next).padStart(4, '0')}`;
   }
 
-  /** Số hóa đơn `INV{YYYY}{5 số}` – tăng dần trong năm. */
-  private async nextInvoiceNumber(manager: EntityManager): Promise<string> {
-    const year = this.todayInVietnam().slice(0, 4);
-    const prefix = `INV${year}`;
-
-    const row = await manager
-      .createQueryBuilder(Invoice, 'invoice')
-      .select('MAX(invoice.number)', 'maxNumber')
-      .where('invoice.number LIKE :prefix', { prefix: `${prefix}%` })
-      .getRawOne<{ maxNumber: string | null }>();
-
-    const current = row?.maxNumber ? Number(String(row.maxNumber).replace(/\D/g, '').slice(-5)) : 0;
-    const next = Number.isFinite(current) ? current + 1 : 1;
-    return `${prefix}${String(next).padStart(5, '0')}`;
-  }
-
   // ===== nội bộ: dựng view =====
 
   private async countPassengers(bookingIds: string[]): Promise<Map<string, number>> {
@@ -1032,74 +987,11 @@ export class BookingService {
     };
   }
 
-  /** Chụp dữ liệu tại thời điểm xuất hóa đơn – không phụ thuộc thay đổi sau này. */
-  private buildInvoiceSnapshot(booking: Booking): InvoiceSnapshot {
-    const passengers = booking.passengers ?? [];
-    const grouped = new Map<string, InvoiceLine>();
-
-    for (const passenger of passengers) {
-      const key = `${passenger.type}:${passenger.unitPrice}`;
-      const line = grouped.get(key);
-      if (line) {
-        line.quantity += 1;
-        line.amount = line.quantity * line.unitPrice;
-      } else {
-        grouped.set(key, {
-          description: this.passengerLabel(passenger.type),
-          quantity: 1,
-          unitPrice: passenger.unitPrice,
-          amount: passenger.unitPrice,
-        });
-      }
-    }
-
-    const lines = [...grouped.values()];
-    if (booking.discount > 0) {
-      lines.push({
-        description: 'Giảm giá khuyến mãi',
-        quantity: 1,
-        unitPrice: -booking.discount,
-        amount: -booking.discount,
-      });
-    }
-
-    return {
-      customerName: booking.contactName,
-      customerEmail: booking.contactEmail,
-      customerPhone: booking.contactPhone,
-      tourName: booking.schedule?.tour?.name ?? '',
-      startDate: booking.schedule?.startDate ?? '',
-      lines,
-      subtotal: booking.subtotal,
-      discount: booking.discount,
-      total: booking.total,
-    };
-  }
-
-  private passengerLabel(type: string): string {
-    switch (type) {
-      case PassengerType.CHILD:
-        return 'Vé trẻ em';
-      case PassengerType.INFANT:
-        return 'Vé em bé';
-      default:
-        return 'Vé người lớn';
-    }
-  }
-
   // ===== nội bộ: quyền =====
 
   /** Nhân viên có `booking:read` thì xem được mọi booking, khách chỉ xem của mình. */
   private canReadAll(actor: AuthenticatedUser): boolean {
     return actor.permissions.includes('booking:read');
-  }
-
-  private isInvoiceable(status: BookingStatus): boolean {
-    return (
-      status === BookingStatus.CONFIRMED ||
-      status === BookingStatus.COMPLETED ||
-      status === BookingStatus.CANCEL_REQUESTED
-    );
   }
 
   /** Đánh dấu booking đã hoàn thành sau khi tour kết thúc (job `schedule-status-sync`). */

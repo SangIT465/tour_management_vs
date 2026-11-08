@@ -51,6 +51,7 @@ import { Review } from '../../modules/review/entities/review.entity.js';
 
 // notification
 import { Notification } from '../../modules/notification/entities/notification.entity.js';
+import { MailMessage } from '../../modules/mail/entities/mail-message.entity.js';
 
 // system
 import { AuditLog } from '../../modules/system/entities/audit-log.entity.js';
@@ -60,12 +61,12 @@ import { SystemSetting } from '../../modules/system/entities/system-setting.enti
 import { SupportTicket } from '../../modules/support/support.entity.js';
 
 /**
- * 36 entity của hệ thống, theo đúng thứ tự "cha trước con" cho dễ đọc.
+ * Entity của hệ thống, theo đúng thứ tự "cha trước con" cho dễ đọc.
  * Thứ tự này không ảnh hưởng tới việc tạo bảng (TypeORM tự sắp xếp theo FK).
  *
  * Lưu ý: 3 bảng nối do `@JoinTable` sinh ra (user_roles, role_permissions,
  * tour_categories) không nằm trong danh sách này nhưng vẫn được TypeORM
- * tạo metadata và migration → tổng cộng 39 bảng trong DB.
+ * tạo metadata và migration.
  */
 export const ALL_ENTITIES_ARRAY = [
   // định danh & phân quyền
@@ -75,6 +76,7 @@ export const ALL_ENTITIES_ARRAY = [
   AuthToken,
   GuideProfile,
   Notification,
+  MailMessage,
   Favorite,
   AuditLog,
 
