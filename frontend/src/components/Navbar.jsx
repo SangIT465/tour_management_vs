@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { queryString } from '../utils.js';
 import Brand from './Brand.jsx';
 import { Icon } from './UI.jsx';
+import { cleanTourFilter } from '../tour-search.js';
 
 export default function Navbar({ path }) {
   const [open, setOpen] = useState(false);
@@ -10,7 +11,7 @@ export default function Navbar({ path }) {
   const { user, logout } = useAuth();
   function search(event) {
     event.preventDefault();
-    window.location.hash = `/tours?${queryString({ search: new FormData(event.currentTarget).get('search')?.trim() })}`;
+    window.location.hash = `/tours?${queryString({ search: cleanTourFilter(new FormData(event.currentTarget).get('search')) })}`;
     setOpen(false);
   }
   return <header className="header tourgo-header"><div className="container nav"><Brand />

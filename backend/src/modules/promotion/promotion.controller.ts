@@ -36,6 +36,12 @@ import { PromotionService } from './promotion.service.js';
 export class PromotionController {
   constructor(private readonly promotionService: PromotionService) { }
 
+  @Get('available')
+  @ApiOperation({ summary: 'Mã ưu đãi còn hiệu lực và còn lượt dùng cho khách đang đăng nhập' })
+  available(@CurrentUser() user: AuthenticatedUser) {
+    return this.promotionService.available(user.id);
+  }
+
   @Post('validate')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

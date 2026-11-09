@@ -16,7 +16,7 @@ import type {
   ValidatePromotionDto,
 } from './dto/promotion.dto.js';
 import { Promotion } from './entities/promotion.entity.js';
-import type { PromotionQuoteView, PromotionView } from './types/promotion.types.js';
+import type { AvailablePromotionView, PromotionQuoteView, PromotionView } from './types/promotion.types.js';
 
 /**
  * Quản lý mã khuyến mãi.
@@ -34,6 +34,29 @@ export class PromotionService {
   constructor(@InjectRepository(Promotion) private readonly promotionRepo: Repository<Promotion>) { }
 
   // ===== truy vấn =====
+
+  /** Read-only discovery; actual application still validates inside the booking transaction. */
+  async available(customerId: string): Promise<AvailablePromotionView[]> {
+    const now = new Date();
+    const promotions = await this.promotionRepo.createQueryBuilder('promotion')
+      .where('promotion.active = :active', { active: true })
+      .andWhere('promotion.validFrom <= :now AND promotion.validTo >= :now', { now })
+      .andWhere('(promotion.usageLimit IS NULL OR promotion.usedCount < promotion.usageLimit)')
+      .andWhere(qb => {
+        const usage = qb.subQuery().select('COUNT(*)').from(Booking, 'customerBooking')
+          .where('customerBooking.promotionId = promotion.id')
+          .andWhere('customerBooking.customerId = :customerId')
+          .andWhere('customerBooking.status NOT IN (:...releasedStatuses)')
+          .getQuery();
+        return `${usage} < promotion.perUserLimit`;
+      })
+      .setParameters({ customerId, releasedStatuses: [BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.EXPIRED] })
+      .orderBy('promotion.validTo', 'ASC').addOrderBy('promotion.code', 'ASC')
+      .take(50).getMany();
+    return promotions.map(({ code, type, value, maxDiscount, minOrder, perUserLimit, validFrom, validTo }) => ({
+      code, type, value, maxDiscount: maxDiscount ?? null, minOrder, perUserLimit, validFrom, validTo,
+    }));
+  }
 
   async paginate(query: QueryPromotionsDto) {
     const page = Math.max(1, query.page ?? 1);

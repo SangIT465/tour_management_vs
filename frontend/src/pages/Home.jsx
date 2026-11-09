@@ -4,6 +4,7 @@ import { queryString } from '../utils.js';
 import TourCard from '../components/TourCard.jsx';
 import Banners from '../components/Banners.jsx';
 import { Icon, State } from '../components/UI.jsx';
+import { cleanTourFilter } from '../tour-search.js';
 
 const destinations = [
   { name: 'Ninh Bình', image: 'ninh-binh', caption: 'Miền di sản' },
@@ -28,7 +29,7 @@ export default function Home() {
   function search(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    window.location.hash = `/tours?${queryString({ search: form.get('search')?.trim(), departureCity: form.get('departureCity')?.trim(), categoryId: form.get('categoryId') })}`;
+    window.location.hash = `/tours?${queryString({ search: cleanTourFilter(form.get('search')), departureCity: cleanTourFilter(form.get('departureCity')), categoryId: form.get('categoryId') })}`;
   }
   return <div className="tourgo-home">
     <section className="hero home-hero"><div className="hero-landscape" />

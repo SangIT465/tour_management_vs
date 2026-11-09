@@ -10,6 +10,7 @@ import { Category } from '../src/modules/catalog/entities/category.entity.js';
 import { ItineraryDay } from '../src/modules/catalog/entities/itinerary-day.entity.js';
 import { Tour } from '../src/modules/catalog/entities/tour.entity.js';
 import { DepartureSchedule } from '../src/modules/schedule/entities/departure-schedule.entity.js';
+import { seedDemoDestinations } from './lib/demo-destinations.js';
 
 const tours = [
   {
@@ -127,7 +128,8 @@ try {
       schedulesCreated += 3;
       console.log(`Đã thêm ${tour.code}: ${tour.name} — ${item.price.toLocaleString('vi-VN')} VNĐ/người lớn`);
     }
-    console.log(`Hoàn tất: thêm ${created} tour và ${schedulesCreated} lịch khởi hành. Không xóa hay cập nhật dữ liệu cũ.`);
+    const linked = await seedDemoDestinations(manager);
+    console.log(`Hoàn tất: thêm ${created} tour, ${schedulesCreated} lịch khởi hành và ${linked.linksCreated} liên kết điểm đến còn thiếu. Giữ nguyên tour/lịch/điểm đến đã cấu hình.`);
   });
   const rows: unknown = await source.query(`SELECT t.code, t.name, t.status, COUNT(s.id) AS schedule_count, MIN(s.price_adult) AS from_price FROM tours t LEFT JOIN departure_schedules s ON s.tour_id = t.id WHERE t.code IN (${tours.map(() => '?').join(',')}) AND t.deleted_at IS NULL GROUP BY t.id, t.code, t.name, t.status ORDER BY t.code`, tours.map(tour => tour.code));
   console.table(rows);

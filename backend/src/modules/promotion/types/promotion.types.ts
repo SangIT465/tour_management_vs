@@ -31,3 +31,6 @@ export interface PromotionQuoteView {
   type: PromotionType;
   value: number;
 }
+
+/** Customer-facing campaign conditions, without management or usage history. */
+export type AvailablePromotionView = Pick<PromotionView, 'code' | 'type' | 'value' | 'maxDiscount' | 'minOrder' | 'perUserLimit' | 'validFrom' | 'validTo'>;

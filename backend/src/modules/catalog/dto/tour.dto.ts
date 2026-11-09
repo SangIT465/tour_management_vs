@@ -214,7 +214,7 @@ export class QueryToursDto {
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({ description: 'Tìm theo tên, mã tour hoặc mô tả ngắn' })
+  @ApiPropertyOptional({ description: 'Tìm một phần tên, mã tour, mô tả, điểm đến hoặc nơi khởi hành; hỗ trợ tiếng Việt không dấu và một ký tự' })
   @IsOptional()
   @IsString()
   @MaxLength(120)

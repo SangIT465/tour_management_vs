@@ -42,6 +42,11 @@ async function bootstrap() {
     dotfiles: 'ignore',
     maxAge: '7d',
     immutable: true,
+    // Public tour images are shared by the web frontend and the mobile preview.
+    // Keep Helmet's default policy for API responses; allow embedding only here.
+    setHeaders: (response) => {
+      response.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
   });
 
   app.enableCors({

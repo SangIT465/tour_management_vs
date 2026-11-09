@@ -112,3 +112,28 @@
 @media (prefers-reduced-motion: reduce) {
   .checkout-page * { scroll-behavior: auto; }
 }
+
+.promotion-picker { margin: 0 0 20px; }
+.promotion-picker-toggle { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 13px 14px; border: 1px dashed #9fc6ff; border-radius: 8px; background: #f2f7ff; color: #0068ff; cursor: pointer; min-height: 54px; }
+.promotion-picker-toggle > span { flex: 1; font-size: 13px; font-weight: 650; }
+.promotion-picker-toggle small { display: block; margin-top: 3px; font-size: 10px; color: #6b85a8; font-weight: 400; }
+.promotion-picker-toggle:disabled { cursor: default; opacity: .55; }
+.promotion-picker-content { margin-top: 12px; padding: 15px; border: 1px solid #e0e8f4; border-radius: 10px; background: #fbfdff; }
+.promotion-picker-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: #214570; }
+.promotion-picker-heading > span { white-space: nowrap; font-size: 10px; background: #edf5ff; color: #0068ff; border-radius: 20px; padding: 4px 8px; }
+.customer-site .promotion-picker-note { font-size: 11px; line-height: 1.7; color: #7186a1; margin: 9px 0 13px; }
+.promotion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; max-height: 520px; overflow-y: auto; padding: 2px; }
+.promotion-voucher { min-width: 0; display: flex; flex-direction: column; gap: 9px; padding: 14px; border: 1px solid #dce8f8; border-radius: 9px; background: #fff; }
+.promotion-voucher-selected { border-color: #0068ff; box-shadow: 0 0 0 1px #0068ff; }
+.promotion-voucher-heading { display: flex; align-items: center; gap: 9px; }
+.promotion-voucher-icon { display: grid; place-items: center; width: 37px; height: 42px; color: #0068ff; background: #edf5ff; border-radius: 7px; flex-shrink: 0; }
+.promotion-voucher-heading > div { min-width: 0; }
+.promotion-voucher-heading strong { display: block; color: #0068ff; font-size: 16px; }
+.promotion-voucher code { display: block; font-size: 11px; font-weight: 700; color: #284b77; letter-spacing: .5px; margin-top: 4px; overflow-wrap: anywhere; }
+.customer-site .promotion-voucher p { font-size: 11px; color: #6d82a0; line-height: 1.7; margin: 0; }
+.promotion-voucher p strong { color: #365679; font-weight: 600; }
+.promotion-voucher > small { font-size: 10px; line-height: 1.7; color: #8493a8; }
+.checkout-page .promotion-voucher .btn { align-self: flex-end; min-height: 36px; font-size: 11px; padding: 7px 12px; margin-top: auto; }
+.customer-site .promotion-voucher .promotion-shortfall { color: #ac6a25; }
+.promotion-voucher-unavailable { background: #f8fafc; }
+@media (max-width: 560px) { .promotion-grid { grid-template-columns: minmax(0, 1fr); max-height: 470px; } .promotion-picker-content { padding: 12px; } }

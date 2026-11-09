@@ -9,4 +9,5 @@ dist-scripts/
 
 # Tệp người dùng tải lên (do UploadModule ghi ra) – không commit vào repo.
 backend/uploads/
+.artifacts/
 *.tsbuildinfo

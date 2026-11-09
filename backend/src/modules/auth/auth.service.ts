@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'node:crypto';
-import { LessThan, type Repository } from 'typeorm';
+import { IsNull, LessThan, type Repository } from 'typeorm';
 import type { AuthenticatedUser, JwtPayload } from '../../common/auth/auth.types.js';
 import { generateOpaqueToken, hashToken } from '../../common/auth/token.util.js';
 import { RoleName, TokenType, UserStatus } from '../../common/enums/index.js';
@@ -156,7 +156,7 @@ export class AuthService {
    */
   private async revokeAllRefreshTokens(userId: string): Promise<number> {
     const result = await this.tokenRepo.update(
-      { userId, type: TokenType.REFRESH, revokedAt: null as never },
+      { userId, type: TokenType.REFRESH, revokedAt: IsNull() },
       { revokedAt: new Date() },
     );
     return result.affected ?? 0;
@@ -212,14 +212,8 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản không khả dụng');
     }
 
-    // Kiểm tra chữ ký JWT độc lập để chắc chắn token được phát bởi hệ thống này.
-    try {
-      this.jwtService.verify<JwtPayload>(refreshToken, {
-        secret: this.config.get<string>('jwt.refreshSecret') ?? 'change_me_refresh',
-      });
-    } catch {
-      throw new UnauthorizedException('Refresh token không hợp lệ');
-    }
+    // Refresh tokens are opaque random values, authenticated by their stored SHA-256
+    // hash and database expiry/revocation state. Only access tokens are JWTs.
 
     return this.issueSession(user, meta);
   }
@@ -273,7 +267,7 @@ export class AuthService {
     if (!user) return { sent: true };
 
     await this.tokenRepo.update(
-      { userId: user.id, type: TokenType.RESET_PASSWORD, revokedAt: null as never },
+      { userId: user.id, type: TokenType.RESET_PASSWORD, revokedAt: IsNull() },
       { revokedAt: new Date() },
     );
     const token = await this.issueToken(user, TokenType.RESET_PASSWORD, 30 * 60 * 1000);
@@ -342,8 +336,7 @@ export class AuthService {
     });
 
     const refreshToken = generateOpaqueToken();
-    // Refresh token là chuỗi opaque (không phải JWT) nhưng vẫn ký để `refresh()`
-    // xác minh được nguồn phát; lưu hash vào DB để so khớp.
+    // Refresh token là chuỗi opaque; chỉ lưu hash vào DB để xác thực khi xoay vòng.
     const ttlMs = this.refreshTokenMs();
     await this.saveToken(user.id, TokenType.REFRESH, refreshToken, ttlMs, meta);
 

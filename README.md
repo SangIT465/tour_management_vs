@@ -1,7 +1,9 @@
 # Hệ thống quản lý tour du lịch
 
 Backend NestJS, frontend React/Vite và MySQL. Chạy các lệnh dưới đây từ thư mục dự án.
+Ứng dụng Android/iOS dùng chung backend: [hướng dẫn chạy TourGo Mobile](mobile/README.md).
 Chức năng mã giảm giá, in hóa đơn và email thanh toán: [hướng dẫn cấu hình và sử dụng](docs/PAYMENT_RECEIPTS.md).
+Tìm kiếm tour và các bộ lọc: [hành vi, kết quả kiểm thử và cách chạy lại](docs/SEARCH_TESTING.md).
 Trên Windows PowerShell, dùng `npm.cmd` nếu `npm` bị chặn bởi execution policy.
 
 ## Cài đặt và khởi tạo lần đầu
@@ -24,6 +26,8 @@ npm.cmd run db:sync
 npm.cmd run db:seed
 npm.cmd run db:seed:tours
 npm.cmd run db:seed:images
+npm.cmd run db:seed:promotions
+npm.cmd run db:seed:destinations
 ```
 
 `db:sync` chỉ chạy khi database chưa có bảng. Nếu database đã có dữ liệu, dùng migration để cập nhật schema.

@@ -24,13 +24,16 @@
     "db:seed": "npm run db:build && node dist-scripts/scripts/seed.js",
     "db:seed:tours": "npm run db:build && node dist-scripts/scripts/seed-tours.js",
     "db:seed:images": "npm run db:build && node dist-scripts/scripts/seed-tour-images.js",
+    "db:seed:promotions": "npm run db:build && node dist-scripts/scripts/seed-promotions.js",
+    "db:seed:destinations": "npm run db:build && node dist-scripts/scripts/seed-tour-destinations.js",
     "test": "vitest run",
     "test:entities": "vitest run src/database/verify-entities.spec.ts",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "test:checkout": "vitest run --config ./vitest.config.checkout.ts"
+    "test:checkout": "vitest run --config ./vitest.config.checkout.ts",
+    "test:search": "vitest run --config ./vitest.config.search.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

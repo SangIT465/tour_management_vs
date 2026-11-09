@@ -13,7 +13,7 @@ npm run dev
 
 Mở `http://localhost:5173`. Chạy backend và MySQL theo cấu hình backend trước khi sử dụng dữ liệu thật. Vite chuyển tiếp `/api` và `/uploads` sang `http://localhost:3000`.
 
-Nếu backend dùng cổng khác, sửa `API_PROXY_TARGET` trong `.env` rồi khởi động lại Vite. Nếu đổi API_PREFIX ở backend, cần cập nhật cả `VITE_API_BASE_URL` và quy tắc proxy trong `vite.config.js`.
+Từ thư mục gốc, `npm.cmd run dev:web` tự chạy backend và website với cùng cấu hình cổng/prefix. Nếu chạy riêng và backend dùng cổng khác, sửa `API_PROXY_TARGET` trong `.env`; nếu backend đổi API_PREFIX, đặt `API_PROXY_PREFIX` tương ứng. Giữ `VITE_API_BASE_URL=/api` để Vite proxy tới backend.
 
 ## Chức năng
 

@@ -24,6 +24,7 @@ import { Refund } from '../src/modules/payment/entities/refund.entity.js';
 import { MailMessage } from '../src/modules/mail/entities/mail-message.entity.js';
 import { MailTransportService } from '../src/modules/mail/mail-transport.service.js';
 import { MailOutboxService } from '../src/modules/mail/mail-outbox.service.js';
+import { PROMOTION_CATALOG, seedPromotionCatalog } from '../scripts/lib/promotion-catalog.js';
 
 /** Uses a randomly named, isolated MySQL database. Never sends mail to real addresses. */
 describe('Checkout integration (MySQL)', () => {
@@ -77,7 +78,7 @@ describe('Checkout integration (MySQL)', () => {
       .overrideProvider(MailTransportService).useValue(transport).compile();
     app = module.createNestApplication();
     app.setGlobalPrefix('api');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: true } }));
     await app.init();
     for (const job of app.get(SchedulerRegistry).getCronJobs().values()) await job.stop();
     const jwt = app.get(JwtService);
@@ -114,6 +115,54 @@ describe('Checkout integration (MySQL)', () => {
   async function gateway(txnRef: string) {
     return request(app.getHttpServer()).get(`/api/payments/mock-gateway/pay/${txnRef}`).expect(200);
   }
+
+  it('adds ten distinct campaigns once, preserves edits, and applies every discount at its minimum order', async () => {
+    expect(await source.transaction(manager => seedPromotionCatalog(manager))).toEqual({ created: 10, skipped: 0 });
+    const repo = source.getRepository(Promotion);
+    const first = await repo.findOneByOrFail({ code: 'TOURGO5' });
+    await repo.update(first.id, { active: false, usedCount: 2, value: 6 });
+    expect(await source.transaction(manager => seedPromotionCatalog(manager))).toEqual({ created: 0, skipped: 10 });
+    const preserved = await repo.findOneByOrFail({ id: first.id });
+    expect(preserved).toMatchObject({ active: false, usedCount: 2, value: 6 });
+    expect(preserved.validTo.getTime()).toBe(first.validTo.getTime());
+    await repo.update(first.id, { active: true, usedCount: 0, value: 5 });
+
+    const discounts = [50_000, 120_000, 200_000, 360_000, 600_000, 100_000, 200_000, 300_000, 500_000, 1_000_000];
+    for (const [index, campaign] of PROMOTION_CATALOG.entries()) {
+      const quote = await request(app.getHttpServer()).post('/api/promotions/validate').auth(token, { type: 'bearer' })
+        .send({ code: campaign.code.toLowerCase(), subtotal: campaign.minOrder }).expect(200);
+      expect(quote.body).toMatchObject({ code: campaign.code, discount: discounts[index], total: campaign.minOrder - discounts[index] });
+      await request(app.getHttpServer()).post('/api/promotions/validate').auth(token, { type: 'bearer' })
+        .send({ code: campaign.code, subtotal: campaign.minOrder - 1 }).expect(400);
+      expect((await repo.findOneByOrFail({ code: campaign.code })).usedCount).toBe(0);
+    }
+    const cap = await request(app.getHttpServer()).post('/api/promotions/validate').auth(token, { type: 'bearer' })
+      .send({ code: 'DIXA15', subtotal: 100_000_000 }).expect(200);
+    expect(cap.body.discount).toBe(800_000);
+  });
+
+  it('shows customers only live campaigns with remaining global and personal quota', async () => {
+    await request(app.getHttpServer()).get('/api/promotions/available').expect(401);
+    await request(app.getHttpServer()).get('/api/promotions').auth(token, { type: 'bearer' }).expect(403);
+    await promotion('CATALOGOFF', { active: false });
+    await promotion('CATALOGEXPIRED', { validFrom: new Date(Date.now() - 172_800_000).toISOString(), validTo: new Date(Date.now() - 86_400_000).toISOString() });
+    await promotion('CATALOGFUTURE', { validFrom: new Date(Date.now() + 60_000).toISOString() });
+    const exhausted = await promotion('CATALOGEMPTY', { usageLimit: 1 });
+    await source.getRepository(Promotion).update(exhausted.id, { usedCount: 1 });
+    await promotion('CATALOGONCE');
+    const booking = (await book('CATALOGONCE').expect(201)).body;
+    const list = await request(app.getHttpServer()).get('/api/promotions/available').auth(token, { type: 'bearer' }).expect(200);
+    const codes = list.body.map((item: { code: string }) => item.code);
+    expect(codes).toEqual(expect.arrayContaining(PROMOTION_CATALOG.map(item => item.code)));
+    for (const excluded of ['CATALOGOFF', 'CATALOGEXPIRED', 'CATALOGFUTURE', 'CATALOGEMPTY', 'CATALOGONCE']) expect(codes).not.toContain(excluded);
+    expect(list.body[0]).not.toHaveProperty('usedCount');
+    expect(list.body[0]).not.toHaveProperty('id');
+    const other = await request(app.getHttpServer()).get('/api/promotions/available').auth(otherToken, { type: 'bearer' }).expect(200);
+    expect(other.body.map((item: { code: string }) => item.code)).toContain('CATALOGONCE');
+    await request(app.getHttpServer()).patch(`/api/bookings/${booking.id}/cancel`).auth(staffToken, { type: 'bearer' }).send({ reason: 'Release catalog test reservation' }).expect(200);
+    const released = await request(app.getHttpServer()).get('/api/promotions/available').auth(token, { type: 'bearer' }).expect(200);
+    expect(released.body.map((item: { code: string }) => item.code)).toContain('CATALOGONCE');
+  });
 
   it('applies the server price, blocks customer invoice creation before payment, and checks code ownership limits', async () => {
     await promotion('SAVE10');
@@ -245,5 +294,24 @@ describe('Checkout integration (MySQL)', () => {
     await request(app.getHttpServer()).delete(`/api/promotions/${code.id}`).auth(staffToken, { type: 'bearer' }).expect(409);
     await request(app.getHttpServer()).patch(`/api/bookings/${booking.id}/cancel`).auth(staffToken, { type: 'bearer' }).send({ reason: 'Integration cancellation' }).expect(200);
     await request(app.getHttpServer()).delete(`/api/promotions/${code.id}`).auth(staffToken, { type: 'bearer' }).expect(409);
+  });
+
+  it('supports the mobile signup, rotating session, booking, payment and invoice API contract', async () => {
+    const credentials = { email: 'mobile-customer@example.test', password: 'Mobile@123456' };
+    await request(app.getHttpServer()).post('/api/auth/register').send({ ...credentials, fullName: 'Mobile Customer' }).expect(201);
+    const login = await request(app.getHttpServer()).post('/api/auth/login').send(credentials).expect(200);
+    expect(login.body.refreshToken).toMatch(/^[a-f0-9]{64}$/);
+    const rotated = await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: login.body.refreshToken }).expect(200);
+    expect(rotated.body.refreshToken).not.toBe(login.body.refreshToken);
+    const auth = rotated.body.accessToken;
+    await request(app.getHttpServer()).get('/api/auth/me').auth(auth, { type: 'bearer' }).expect(200);
+    await request(app.getHttpServer()).get('/api/tours?page=1&limit=2').expect(200);
+    const booking = (await book(undefined, 0, auth).expect(201)).body;
+    const payment = await createPayment(booking.id, PaymentMethod.VNPAY, auth);
+    await gateway(payment.gatewayTxnRef);
+    const invoice = await request(app.getHttpServer()).get(`/api/bookings/${booking.id}/invoice/document`).auth(auth, { type: 'bearer' }).expect(200);
+    expect(invoice.body.html).toContain('HÓA ĐƠN THANH TOÁN');
+    await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: login.body.refreshToken }).expect(401);
+    await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: rotated.body.refreshToken }).expect(401);
   });
 });

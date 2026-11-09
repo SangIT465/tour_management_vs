@@ -73,6 +73,35 @@ toán, thông tin tour và tệp hóa đơn HTML đính kèm. SMTP nhận thư k
 
 ## Cách sử dụng
 
+Thêm 10 mã ưu đãi vào database hiện tại từ thư mục `backend`:
+
+```powershell
+npm.cmd run db:seed:promotions
+```
+
+Script chỉ thêm mã chưa tồn tại, không ghi đè cấu hình quản trị, thời hạn hay số
+lượt đã dùng. Mã mới có hiệu lực ngay và hết hạn sau 365 ngày tính từ lúc tạo;
+chạy lại không gia hạn hoặc đặt lại lượt dùng.
+
+| Mã | Mức giảm | Đơn tối thiểu | Giảm tối đa | Tổng lượt | Lượt / khách |
+|---|---|---|---|---|---|
+| TOURGO5 | 5% | 1.000.000đ | 150.000đ | 500 | 1 |
+| DICHILL8 | 8% | 1.500.000đ | 250.000đ | 300 | 2 |
+| TOURGO10 | 10% | 2.000.000đ | 400.000đ | 300 | 2 |
+| KHAMPHA12 | 12% | 3.000.000đ | 600.000đ | 200 | 1 |
+| DIXA15 | 15% | 4.000.000đ | 800.000đ | 150 | 1 |
+| TIETKIEM100 | 100.000đ | 1.000.000đ | — | 500 | 2 |
+| VIETNAM200 | 200.000đ | 2.000.000đ | — | 300 | 2 |
+| HANHTRINH300 | 300.000đ | 3.000.000đ | — | 200 | 1 |
+| VIVU500 | 500.000đ | 5.000.000đ | — | 150 | 1 |
+| TRONVEN1TR | 1.000.000đ | 10.000.000đ | — | 100 | 1 |
+
+Khách mở **Chọn mã ưu đãi** ở trang đặt tour để xem điều kiện và chọn mã.
+Danh sách `/promotions/available` yêu cầu đăng nhập, ẩn mã đã tắt/hết hạn/hết lượt
+hoặc khách đã dùng hết lượt cá nhân. Khi đã có báo giá, mã chưa đạt đơn tối thiểu
+hiển thị số tiền cần thêm. Chọn mã chưa đồng nghĩa áp dụng thành công: nút
+**Áp dụng** và thao tác tạo đơn đều lấy kết quả tính lại từ server.
+
 - Admin quản lý mã trong mục **Khuyến mãi**: phần trăm hoặc số tiền, trần giảm,
   đơn tối thiểu, thời hạn, tổng lượt và lượt mỗi khách.
 - Khách nhập mã ở trang đặt tour, bấm **Áp dụng** để lấy báo giá từ server. Thay

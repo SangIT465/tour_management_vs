@@ -3,6 +3,7 @@ import { useApi } from '../hooks.js';
 import { queryString, money } from '../utils.js';
 import { Icon, Pagination, State } from '../components/UI.jsx';
 import TourCard from '../components/TourCard.jsx';
+import { cleanTourFilter } from '../tour-search.js';
 
 const filterNames = { search: 'Từ khóa', departureCity: 'Khởi hành', destination: 'Điểm đến', minPrice: 'Giá từ', maxPrice: 'Giá đến', minDays: 'Từ ngày', maxDays: 'Đến ngày' };
 const places = ['Hạ Long', 'Ninh Bình', 'Hội An', 'Phú Quốc', 'Sa Pa', 'Đà Lạt'];
@@ -14,7 +15,7 @@ export default function Tours({ params }) {
   const routeKey = params.toString();
   useEffect(() => { setFilterError(''); }, [routeKey]);
   const page = Math.max(1, Math.floor(Number(params.get('page')) || 1));
-  const values = Object.fromEntries(Object.keys(filterNames).map(key => [key, params.get(key) || '']));
+  const values = Object.fromEntries(Object.keys(filterNames).map(key => [key, cleanTourFilter(params.get(key))]));
   const categoryId = params.get('categoryId') || '';
   const sortBy = ['name', 'avgRating', 'createdAt', 'price', 'durationDays'].includes(params.get('sortBy')) ? params.get('sortBy') : 'createdAt';
   const sortOrder = params.get('sortOrder') === 'ASC' || (!params.has('sortOrder') && ['name', 'price', 'durationDays'].includes(sortBy)) ? 'ASC' : 'DESC';
@@ -25,7 +26,7 @@ export default function Tours({ params }) {
   }
   function apply(event) {
     event.preventDefault();
-    const fields = Object.fromEntries(new FormData(event.currentTarget));
+    const fields = Object.fromEntries([...new FormData(event.currentTarget)].map(([key, value]) => [key, cleanTourFilter(value)]));
     for (const [min, max, title] of [['minPrice', 'maxPrice', 'Giá'], ['minDays', 'maxDays', 'Số ngày']]) {
       if (fields[min] !== '' && fields[max] !== '' && Number(fields[min]) > Number(fields[max])) {
         setFilterError(`${title} tối thiểu không được lớn hơn tối đa.`);

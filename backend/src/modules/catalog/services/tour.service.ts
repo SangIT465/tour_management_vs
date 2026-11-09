@@ -18,6 +18,7 @@ import type {
 } from '../types/catalog.types.js';
 import { CancelPolicyService } from './cancel-policy.service.js';
 import { CategoryService } from './category.service.js';
+import { normalizeTourSearch, tourSearchPattern, tourTextContains } from './tour-search.js';
 
 type TourListResult = {
   items: TourSummaryView[];
@@ -47,6 +48,12 @@ export class TourService {
    * `status` client gửi lên – nếu không, khách có thể xem tour DRAFT/HIDDEN.
    */
   async paginate(query: QueryToursDto, onlyPublished = false): Promise<TourListResult> {
+    if (query.minPrice !== undefined && query.maxPrice !== undefined && query.minPrice > query.maxPrice) {
+      throw new BadRequestException('Giá tối thiểu không được lớn hơn tối đa.');
+    }
+    if (query.minDays !== undefined && query.maxDays !== undefined && query.minDays > query.maxDays) {
+      throw new BadRequestException('Số ngày tối thiểu không được lớn hơn tối đa.');
+    }
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
 
@@ -64,8 +71,9 @@ export class TourService {
     const sortOrder = (query.sortOrder ?? 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     if (sortBy === 'price') {
       qb.addSelect(this.priceExpression(), 'tour_price_sort')
+        .addSelect(`${this.priceExpression()} IS NULL`, 'tour_price_missing')
         .setParameter('priceToday', this.todayInVietnam())
-        .orderBy('tour_price_sort', sortOrder);
+        .orderBy('tour_price_missing', 'ASC').addOrderBy('tour_price_sort', sortOrder);
     } else qb.orderBy(`tour.${sortBy}`, sortOrder);
     qb.addOrderBy('tour.id', 'ASC');
     qb.skip((page - 1) * limit).take(limit);
@@ -271,13 +279,16 @@ export class TourService {
       qb.andWhere('tour.status = :status', { status: query.status });
     }
 
-    if (query.search) {
-      const keyword = `%${query.search.trim()}%`;
-      qb.andWhere('(tour.name LIKE :keyword OR tour.code LIKE :keyword OR tour.summary LIKE :keyword OR EXISTS (SELECT 1 FROM tour_destinations td JOIN destinations d ON d.id = td.destination_id WHERE td.tour_id = tour.id AND d.name LIKE :keyword))', { keyword });
+    const search = normalizeTourSearch(query.search);
+    if (search) {
+      const fields = ['tour.name', 'tour.code', 'tour.summary', 'tour.departureCity'].map(column => tourTextContains(column, 'keyword'));
+      fields.push(`EXISTS (SELECT 1 FROM tour_destinations td JOIN destinations d ON d.id = td.destination_id WHERE td.tour_id = tour.id AND ${tourTextContains('d.name', 'keyword')})`);
+      qb.andWhere(`(${fields.join(' OR ')})`, { keyword: tourSearchPattern(search) });
     }
 
-    if (query.departureCity) {
-      qb.andWhere('tour.departureCity = :departureCity', { departureCity: query.departureCity.trim() });
+    const departure = normalizeTourSearch(query.departureCity);
+    if (departure) {
+      qb.andWhere(tourTextContains('tour.departureCity', 'departureCity'), { departureCity: tourSearchPattern(departure) });
     }
 
     if (query.categoryId) {
@@ -287,7 +298,8 @@ export class TourService {
         { categoryId: query.categoryId },
       );
     }
-    if (query.destination) qb.andWhere('EXISTS (SELECT 1 FROM tour_destinations td JOIN destinations d ON d.id = td.destination_id WHERE td.tour_id = tour.id AND d.name LIKE :destination)', { destination: `%${query.destination.trim()}%` });
+    const destination = normalizeTourSearch(query.destination);
+    if (destination) qb.andWhere(`EXISTS (SELECT 1 FROM tour_destinations td JOIN destinations d ON d.id = td.destination_id WHERE td.tour_id = tour.id AND ${tourTextContains('d.name', 'destination')})`, { destination: tourSearchPattern(destination) });
     if (query.minDays !== undefined) qb.andWhere('tour.durationDays >= :minDays', { minDays: query.minDays });
     if (query.maxDays !== undefined) qb.andWhere('tour.durationDays <= :maxDays', { maxDays: query.maxDays });
     if (query.minPrice !== undefined || query.maxPrice !== undefined) {
