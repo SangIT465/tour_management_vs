@@ -25,75 +25,203 @@ chung database với website. Admin và nhân viên vận hành qua website.
 Email do backend gửi khi thanh toán được ghi nhận, theo cấu hình SMTP và quy tắc
 người nhận hiện có. Không lưu tài khoản SMTP hoặc mật khẩu trong app.
 
-## Chạy trên điện thoại thật
+## Yêu cầu trước khi chạy
 
-Từ thư mục gốc dự án có thể chạy backend và mobile cùng lúc:
+- Node.js **24.x**, đúng phiên bản trong `.nvmrc`; kiểm tra bằng `node --version`.
+- MySQL đang chạy và có tài khoản được phép tạo bảng trong database dự án.
+- Điện thoại Android hoặc iPhone cài **Expo Go tương thích Expo SDK 57**.
+- Điện thoại và máy tính cùng Wi-Fi, có thể kết nối trực tiếp với nhau.
+
+Các lệnh dưới dùng Windows PowerShell và `npm.cmd` để tránh lỗi execution policy.
+Trên macOS/Linux có thể dùng `npm`/`npx` thay cho `npm.cmd`/`npx.cmd`.
+Thư mục gốc là `tour_management`, chứa ba thư mục `backend`, `frontend`, `mobile`.
+
+## Cài đặt lần đầu
+
+### 1. Cài thư viện
+
+Mở terminal tại **thư mục gốc dự án**:
 
 ```powershell
-npm.cmd run dev:mobile
-# Nếu backend đã chạy, dùng lệnh này thay cho lệnh trên:
-npm.cmd run dev:mobile -- --reuse-api
+npm.cmd run setup
 ```
 
-Lệnh này tự lấy IP mạng LAN cho API và Expo. Dừng phiên Expo cũ bằng `Ctrl+C`
-trước khi chạy để giải phóng cổng `8081`. Các bước chạy riêng từng dịch vụ ở dưới.
+Lệnh này cài thư viện cho backend, web và mobile. Nếu chưa có `backend/.env`,
+script tạo file đó cùng khóa JWT và thanh toán ngẫu nhiên; giữ nguyên `.env` đã có.
 
-Cần Node.js 24 LTS, database/backend đã khởi tạo và Expo Go tương thích SDK 57.
-SDK này được chọn theo [hướng dẫn Expo cho thiết bị thật trong giai đoạn chuyển
-SDK](https://docs.expo.dev/get-started/create-a-project/).
+### 2. Cấu hình MySQL
 
-Terminal backend, từ thư mục gốc dự án:
+Mở `backend/.env`, điền thông tin MySQL trên máy của bạn:
+
+```dotenv
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=mat_khau_mysql_cua_ban
+DB_DATABASE=tour_management
+DB_SYNCHRONIZE=false
+```
+
+Nếu MySQL không đặt mật khẩu, để trống `DB_PASSWORD`. Các giá trị trên là ví dụ;
+mobile không kết nối trực tiếp đến MySQL.
+
+Trong MySQL Workbench hoặc MySQL CLI, chạy SQL sau để tạo database nếu chưa có:
+
+```sql
+CREATE DATABASE IF NOT EXISTS tour_management
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 3. Khởi tạo bảng và dữ liệu mẫu
+
+Từ terminal ở thư mục gốc, chạy:
 
 ```powershell
 cd backend
-npm.cmd install
-npm.cmd run dev
+npm.cmd run db:check
+npm.cmd run db:sync
+npm.cmd run db:seed
+npm.cmd run db:seed:tours
+npm.cmd run db:seed:images
+npm.cmd run db:seed:promotions
+npm.cmd run db:seed:destinations
+cd ..
 ```
 
-Terminal khác, từ thư mục gốc dự án:
+Chỉ chạy `db:sync` khi database còn trống. Nếu database đã có bảng, bỏ bước này;
+khi cần cập nhật schema, dùng migration theo [README dự án](../README.md).
+`db:seed:promotions` thêm 10 mã ưu đãi; `db:seed:destinations` liên kết điểm đến
+cho các tour demo còn thiếu.
+
+## Chạy mobile hằng ngày
+
+Sau khi cài đặt, mở terminal ở **thư mục gốc** và chạy:
+
+```powershell
+npm.cmd run dev:mobile
+```
+
+Lệnh này khởi động backend rồi Expo, tự chọn IP LAN và truyền địa chỉ API cho
+mobile. Với cách chạy này, không cần tự điền IP vào `mobile/.env`.
+Terminal hiển thị `Mobile API`, địa chỉ Expo và QR để mở app.
+
+Nếu backend đã chạy ở terminal khác, dùng lệnh này **thay cho** lệnh trên:
+
+```powershell
+npm.cmd run dev:mobile -- --reuse-api
+```
+
+Nếu muốn chạy cả website, backend và mobile trong một phiên, dùng `npm.cmd run dev`
+thay cho `dev:mobile`. Dừng các phiên web/Expo cũ trước để giải phóng cổng.
+
+Giữ terminal chạy trong khi sử dụng app. `Ctrl+C` dừng các dịch vụ do phiên đó
+khởi động; backend được tái sử dụng bằng `--reuse-api` vẫn chạy ở phiên của nó.
+Khi đổi Wi-Fi/IP, dừng Expo và chạy lại lệnh để tạo QR mới.
+
+## Mở ứng dụng trên điện thoại
+
+### iPhone
+
+Đăng nhập Expo CLI bằng tài khoản Expo của bạn, thực hiện từ thư mục gốc:
 
 ```powershell
 cd mobile
-npm.cmd ci
+npx.cmd expo login
+cd ..
+```
+
+Sau đó:
+
+1. Đăng nhập Expo Go trên iPhone bằng **cùng tài khoản Expo** với CLI.
+2. Chạy lệnh `dev:mobile` ở trên nếu chưa khởi động.
+3. Mở **Camera iPhone**, quét QR trong terminal và chọn mở bằng Expo Go.
+4. Cho phép Expo Go truy cập **Mạng cục bộ / Local Network** khi được hỏi.
+
+Yêu cầu tài khoản Expo trên iOS được mô tả trong
+[hướng dẫn mở app của Expo](https://docs.expo.dev/get-started/start-developing/).
+
+### Android
+
+1. Chạy lệnh `dev:mobile` ở trên nếu chưa khởi động.
+2. Mở Expo Go, chọn quét QR và quét mã trong terminal.
+3. Chờ Metro tạo bundle và mở giao diện TourGo.
+
+Tài khoản **Expo** dùng để mở dự án qua Expo Go; tài khoản **TourGo** dùng để
+đăng nhập ứng dụng. Trong TourGo, bấm **Đăng nhập → Đăng ký ngay** để tạo tài khoản
+khách hàng. Tài khoản admin/nhân viên sử dụng website quản trị.
+
+Thanh điều hướng dưới gồm Trang chủ, Khám phá, Tour của tôi, Yêu thích và Tài khoản;
+thông báo mở bằng biểu tượng chuông ở đầu màn hình.
+
+## Sửa lỗi không kết nối được máy chủ
+
+Lấy IP từ dòng `Mobile API` trong terminal. Ví dụ nếu IP là `192.168.1.10`, mở
+các địa chỉ sau **trong trình duyệt điện thoại** (thay IP bằng giá trị thực tế):
+
+| Địa chỉ | Kết quả mong đợi | Ý nghĩa |
+| --- | --- | --- |
+| `http://192.168.1.10:8081/status` | `packager-status:running` | Điện thoại kết nối được Expo |
+| `http://192.168.1.10:3000/api/health` | JSON có `status: "ok"` | Điện thoại kết nối được backend |
+
+Nếu đổi `PORT` hoặc `API_PREFIX` trong backend, dùng cổng/đường dẫn tương ứng.
+
+| Hiện tượng | Cách xử lý |
+| --- | --- |
+| Không mở được `/status` | Kiểm tra cùng Wi-Fi, quyền Local Network trên iPhone và quyền Node.js qua Windows Firewall trên mạng nội bộ. Mạng khách/trường học có thể chặn thiết bị truy cập nhau; thử Wi-Fi cho phép các thiết bị kết nối trực tiếp. |
+| Mở được `/status`, không mở được `/api/health` | Kiểm tra backend, MySQL, cổng API và firewall cho cổng backend. |
+| Quét QR cũ sau khi đổi Wi-Fi | Dừng Expo, chạy lại `dev:mobile`, quét QR mới. Không dùng `localhost`/`127.0.0.1` trên điện thoại thật. |
+| iPhone báo sai tài khoản Expo | Đăng nhập cùng tài khoản trong CLI và Expo Go, rồi mở lại app. |
+| Báo API 3000 đang được dùng | Nếu đúng backend dự án, dùng `-- --reuse-api`; nếu không, dừng tiến trình đang chiếm cổng. |
+| Báo cổng 8081 đang được dùng | Dừng terminal Expo cũ bằng `Ctrl+C` rồi khởi động lại một phiên Expo. |
+| QR mở được nhưng lần đầu tải lâu | Theo dõi log `iOS Bundled` / `Android Bundled`; lần đầu có thể hơn một phút. Giữ terminal chạy, không xóa cache ở mỗi lần mở. |
+| Báo SDK không tương thích | Dùng Expo Go tương thích SDK 57 theo [hướng dẫn thiết lập môi trường](https://docs.expo.dev/get-started/set-up-your-environment/). |
+
+## Chạy riêng từng dịch vụ và tự cấu hình API
+
+Dùng cách này khi cần tự chọn máy chủ API. Hoàn thành phần cài đặt/database ở trên
+trước, rồi mở hai terminal, mỗi terminal bắt đầu từ thư mục gốc.
+
+Terminal 1 — backend:
+
+```powershell
+cd backend
+npm.cmd run dev
+```
+
+Terminal 2 — Expo:
+
+```powershell
+cd mobile
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Trong `mobile/.env`, đổi URL thành IP mạng LAN của máy chạy backend, ví dụ:
+Mở `mobile/.env` và sửa địa chỉ máy chạy backend, ví dụ:
 
 ```dotenv
 EXPO_PUBLIC_API_URL=http://192.168.1.10:3000/api
 ```
 
-Điện thoại và máy tính cần cùng Wi-Fi. `localhost` trên điện thoại chỉ chính điện
-thoại đó. Nếu đổi cổng backend, đổi URL tương ứng. Khi đổi mạng/IP, cập nhật `.env`
-và khởi động lại Expo. File `.env` trên máy hiện tại đã được điền IP Wi-Fi lúc
-triển khai; file này không được commit.
+Xem địa chỉ IPv4 của Wi-Fi bằng `ipconfig`. Sau khi lưu `.env`, tại terminal 2 chạy:
 
 ```powershell
 npm.cmd run api:check
 npm.cmd start
 ```
 
-Mở Expo Go trên Android/iPhone và quét QR Expo hiển thị. Có thể mở
-`http://<IP-máy-tính>:3000/api/health` trong trình duyệt điện thoại để kiểm tra
-mạng. Nếu không kết nối được, kiểm tra cùng Wi-Fi và quyền cho phép Node.js qua
-Windows Firewall trên mạng nội bộ.
+`api:check` kiểm tra API từ máy tính; vẫn cần mở `/api/health` trên điện thoại
+để xác nhận kết nối từ điện thoại. Khi sửa `.env`, khởi động lại Expo.
+Biến `EXPO_PUBLIC_*` được đóng gói trong app; chỉ đặt URL API ở đây, giữ thông tin
+MySQL/JWT/SMTP trong `backend/.env`.
 
-Nếu quét QR nhưng tải mãi, mở `http://<IP-máy-tính>:8081/status` trên trình duyệt
-điện thoại. Kết quả đúng là `packager-status:running`. Nếu không mở được, kiểm tra
-cùng Wi-Fi, quyền mạng nội bộ trên điện thoại và việc router có chặn các thiết bị
-giao tiếp với nhau không. Địa chỉ `localhost`/`127.0.0.1` trong QR không dùng cho
-điện thoại thật. Nếu `/status` mở được nhưng `/api/health` không mở được thì kiểm
-tra backend và cổng API riêng.
+Nếu máy có nhiều card mạng và lệnh chạy từ gốc chọn sai IP, có thể chỉ định:
 
-Lần chạy đầu hoặc sau khi xóa cache, Metro cần tạo bundle trước khi app mở được.
-Giữ terminal chạy và theo dõi dòng `Android Bundled` / `iOS Bundled`; lần mở đầu
-có thể mất hơn một phút. Không xóa cache ở mọi lần khởi động.
+```powershell
+# Chạy tại thư mục gốc, thay bằng IPv4 Wi-Fi của máy.
+$env:TOURGO_HOST = '192.168.1.10'
+npm.cmd run dev:mobile
+```
 
-Trên iPhone, đăng nhập cùng tài khoản Expo trong Expo Go và Expo CLI
-(`npx.cmd expo login`), theo [hướng dẫn mở app trên thiết bị](https://docs.expo.dev/get-started/start-developing/).
-Thanh điều hướng dưới gồm Trang chủ, Khám phá, Tour của tôi, Yêu thích và Tài khoản;
-Thông báo mở bằng biểu tượng chuông ở đầu màn hình.
+Biến này có hiệu lực trong terminal hiện tại; mở terminal mới để chọn IP tự động.
 
 ## Giả lập và preview web
 
@@ -101,9 +229,15 @@ Thông báo mở bằng biểu tượng chuông ở đầu màn hình.
   `http://10.0.2.2:3000/api` rồi chạy `npm.cmd run android`.
 - iOS Simulator: cần macOS/Xcode, URL `http://localhost:3000/api`, chạy
   `npm.cmd run ios`.
-- Preview trình duyệt: `npm.cmd run web`. Thêm origin Expo, thường là
-  `http://localhost:8081`, vào `CORS_ORIGIN` của backend và khởi động lại backend.
-  Website React/Vite chính vẫn chạy từ `frontend/`.
+- Preview trình duyệt: khi Expo đã chạy, nhấn `w` trong terminal đó rồi mở
+  http://localhost:8081. Nếu Expo chưa chạy và đã cấu hình `.env` theo cách thủ
+  công, chạy `npm.cmd run web` trong `mobile/`.
+
+Khi tự chạy backend hoặc dùng `--reuse-api`, thêm origin preview, thường là
+`http://localhost:8081` và `http://127.0.0.1:8081`, vào `CORS_ORIGIN` của backend
+rồi khởi động lại backend nếu trình duyệt báo CORS. Lệnh `dev:mobile` tự bổ sung
+origin khi chính nó khởi động backend. Website React/Vite chính vẫn chạy ở
+http://localhost:5173 từ thư mục `frontend/`.
 
 Ảnh public `/uploads/` cho phép nhúng khác origin; ảnh có URL `localhost` được
 mobile chuyển sang origin API đã cấu hình. API vẫn giữ xác thực, phân quyền và

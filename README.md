@@ -8,7 +8,7 @@ Trên Windows PowerShell, dùng `npm.cmd` nếu `npm` bị chặn bởi executio
 
 ## Cài đặt và khởi tạo lần đầu
 
-Cần Node.js 22.12+ (hoặc 24+) và MySQL đang chạy.
+Cần Node.js 24.x (theo `.nvmrc`) và MySQL đang chạy.
 
 ```powershell
 cd backend
@@ -59,6 +59,31 @@ npm.cmd run dev
 
 Nếu đổi cổng backend, đặt `API_PROXY_TARGET` trong `frontend/.env` tương ứng.
 Tài khoản admin mặc định sau seed: `admin@tour.local` / `Admin@123456` (có thể đổi bằng `ADMIN_EMAIL`, `ADMIN_PASSWORD` trước khi seed).
+
+## Chạy mobile Android / iPhone
+
+Nếu lần đầu tải code về, làm theo [cài đặt và khởi tạo mobile](mobile/README.md)
+để cài thư viện, cấu hình MySQL và tạo dữ liệu mẫu. Khi đã cài đặt xong, mở
+terminal tại thư mục gốc `tour_management`:
+
+```powershell
+# Khởi động backend và Expo, tự lấy IP Wi-Fi cho điện thoại.
+npm.cmd run dev:mobile
+```
+
+Nếu backend đã chạy, dùng lệnh sau thay cho lệnh trên:
+
+```powershell
+npm.cmd run dev:mobile -- --reuse-api
+```
+
+Cài Expo Go tương thích SDK 57, kết nối điện thoại cùng Wi-Fi với máy tính rồi
+quét QR. iPhone dùng Camera để mở liên kết bằng Expo Go; đăng nhập cùng tài khoản
+Expo trên điện thoại và Expo CLI. Tạo tài khoản khách hàng trong app để đặt tour.
+
+Nhấn `w` trong terminal Expo để xem bản mobile trên trình duyệt tại
+http://localhost:8081. Dừng bằng `Ctrl+C`. Hướng dẫn quét QR, cấu hình API và
+xử lý lỗi **could not connect to the server** có trong [mobile/README.md](mobile/README.md).
 
 ## Kiểm tra
 
