@@ -28,6 +28,10 @@ import { ResourceAssignment } from '../../modules/supplier/entities/resource-ass
 import { Supplier } from '../../modules/supplier/entities/supplier.entity.js';
 
 // promotion
+import { BookingDiscount } from '../../modules/promotion/entities/booking-discount.entity.js';
+import { PromotionAssignment } from '../../modules/promotion/entities/promotion-assignment.entity.js';
+import { PromotionRedemption } from '../../modules/promotion/entities/promotion-redemption.entity.js';
+import { PromotionScope } from '../../modules/promotion/entities/promotion-scope.entity.js';
 import { Promotion } from '../../modules/promotion/entities/promotion.entity.js';
 
 // booking
@@ -102,7 +106,11 @@ export const ALL_ENTITIES_ARRAY = [
 
   // booking & thanh toán
   Promotion,
+  PromotionScope,
+  PromotionAssignment,
   Booking,
+  BookingDiscount,
+  PromotionRedemption,
   Passenger,
   Payment,
   PaymentEvent,

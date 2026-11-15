@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { columnLabels } from '../management.js';
 import ActionForm from '../components/ActionForm.jsx';
+import PromotionAdmin from '../components/PromotionAdmin.jsx';
 import { Pagination, State } from '../components/UI.jsx';
 import { localDateTimeInput } from '../forms.js';
 
@@ -41,5 +42,6 @@ export default function Management({ config }) {
     <State loading={list.loading} error={list.error} empty={!list.loading && !list.error && !rows?.length} retry={refresh} />
     {!!rows?.length && <div className="table-wrap"><table><thead><tr>{config.columns.map(key => <th key={key}>{columnLabels[key] || key}</th>)}<th>Thao tác</th></tr></thead><tbody>{rows.map(row => <tr key={row[config.key || 'id']}>{config.columns.map(key => <td key={key}>{typeof row[key] === 'object' ? JSON.stringify(row[key]) : typeof row[key] === 'boolean' ? row[key] ? 'Có' : 'Không' : row[key] ?? '—'}</td>)}<td>{writable && <div className="table-actions"><button className="text-button" disabled={busy} onClick={() => edit(row)}>Sửa</button><button className="text-button danger" disabled={busy} onClick={() => remove(row)}>Xóa</button></div>}<small>ID: {row[config.key || 'id']}</small></td></tr>)}</tbody></table></div>}
     {config.paginated && <Pagination page={page} total={list.data?.total || 0} limit={10} onChange={setPage} />}
+    {config.adminPanel === 'promotion' && writable && <PromotionAdmin />}
   </>;
 }

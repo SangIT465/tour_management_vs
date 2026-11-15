@@ -31,5 +31,5 @@ export function bookingProgress(booking, payment) {
 }
 
 export function isAccountPath(path) {
-  return ['/account', '/account/overview', '/account/security', '/bookings', '/favorites', '/reviews', '/notifications', '/support'].includes(path) || /^\/(bookings|payment)\/[^/]+$/.test(path);
+  return ['/account', '/account/overview', '/account/security', '/account/vouchers', '/bookings', '/favorites', '/reviews', '/notifications', '/support'].includes(path) || /^\/(bookings|payment)\/[^/]+$/.test(path);
 }

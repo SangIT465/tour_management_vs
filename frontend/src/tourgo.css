@@ -140,6 +140,15 @@
 .my-bookings-page .booking-code { font-size: 12px; color: #637998; }
 .my-bookings-page .booking-row > p { font-size: 13px; }
 .my-bookings-page .price { color: #ed3535; }
+.voucher-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.customer-site .voucher-grid .panel { padding: 18px; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+.voucher-headline { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: #0068ff; }
+.voucher-badge { font-size: 10px; font-weight: 600; color: #0f7a4a; background: #e7f7ef; border-radius: 20px; padding: 4px 9px; white-space: nowrap; }
+.voucher-code { align-self: flex-start; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #17395f; background: #f1f6fd; border: 1px dashed #b9d3f3; border-radius: 6px; padding: 5px 10px; overflow-wrap: anywhere; }
+.customer-site .voucher-card p { margin: 0; font-size: 12px; line-height: 1.7; color: #6d82a0; }
+.customer-site .voucher-card .voucher-name { font-size: 13px; font-weight: 600; color: #214570; }
+.voucher-expiry { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 760px) { .voucher-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (min-width: 1500px) {
   .order-detail-grid { grid-template-columns: minmax(0, 1fr) 380px; }
   .order-cover { height: 255px; }

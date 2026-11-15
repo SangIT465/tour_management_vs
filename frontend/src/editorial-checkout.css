@@ -1,0 +1,185 @@
+/* Đặt tour / Thanh toán / Đặt chỗ thành công — phong cách editorial (ghi đè checkout, payment, booking-success). */
+.checkout-page, .booking-success-page { background: #fbf8f3; font-family: 'Jost', 'Segoe UI', sans-serif; }
+.checkout-page { padding: 36px 0 96px; }
+.checkout-page .container { max-width: 1280px; width: min(1280px, calc(100% - 96px)); }
+.checkout-breadcrumb { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #6f675c; }
+.checkout-breadcrumb a { color: #211d18; }
+.checkout-breadcrumb a:hover { color: #a9693f; }
+.checkout-heading { padding-bottom: 24px; border-bottom: 1px solid #e3dccf; margin-bottom: 32px; }
+.checkout-eyebrow { color: #a9693f; font-size: 11px; font-weight: 500; letter-spacing: .24em; }
+.customer-site .checkout-heading h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 400; font-size: clamp(38px, 4.6vw, 64px); line-height: 1; color: #211d18; letter-spacing: -.025em; margin: 12px 0 12px; }
+.customer-site .checkout-heading p { font-size: 15px; color: #6f675c; }
+.checkout-heading > a { color: #211d18; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+.checkout-heading > a:hover { color: #a9693f; }
+
+.checkout-steps { border: 0; border-top: 1px solid #211d18; border-bottom: 1px solid #e3dccf; border-radius: 0; background: transparent; padding: 20px 0; }
+.checkout-steps li { color: #8b8275; font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; }
+.checkout-steps li:not(:last-child):after { background: #e3dccf; }
+.checkout-steps li > span { border-radius: 0; background: transparent; border: 1px solid #cfc4b1; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 18px; }
+.checkout-steps li.active { color: #211d18; }
+.checkout-steps li.active > span { background: #211d18; border-color: #211d18; color: #fff; }
+.checkout-steps small { color: #8b8275; letter-spacing: .02em; text-transform: none; }
+
+.checkout-layout { gap: 56px; grid-template-columns: minmax(0, 1fr) 400px; }
+.checkout-page .checkout-card { background: #fff; border: 1px solid #e3dccf; border-radius: 0; box-shadow: none; padding: 32px; }
+.checkout-card-title > span { background: #efe8dc; color: #a9693f; border-radius: 0; width: 44px; height: 44px; }
+.customer-site .checkout-card-title h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 500; color: #211d18; letter-spacing: -.01em; }
+.checkout-card-title h2 b { border-radius: 0; background: #efe8dc; color: #a9693f; letter-spacing: .1em; }
+.customer-site .checkout-card-title p { color: #6f675c; font-size: 13px; }
+.customer-site .checkout-form label { color: #6f675c; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 500; }
+.checkout-form label em { color: #a9693f; }
+.customer-site .checkout-form input, .customer-site .checkout-form textarea { border-radius: 0; border-color: #e3dccf; color: #211d18; font-size: 15px; letter-spacing: 0; text-transform: none; min-height: 48px; }
+.customer-site .checkout-form input:focus, .customer-site .checkout-form textarea:focus { border-color: #a9693f; outline: none; box-shadow: inset 0 -2px 0 #a9693f; }
+.checkout-tip { background: #efe8dc; border-radius: 0; color: #6f675c; font-size: 12px; }
+.checkout-tip svg { color: #a9693f; }
+.checkout-passenger { background: #fbf8f3; border: 1px solid #e3dccf; border-radius: 0; }
+.checkout-passenger .passenger-heading strong { color: #211d18; letter-spacing: .14em; text-transform: uppercase; }
+.customer-site .checkout-add { border-radius: 0; background: transparent; border-color: #a9693f; color: #a9693f; }
+.customer-site .checkout-add:hover { background: #a9693f; color: #fff; }
+.checkout-limit, .checkout-optional { color: #8b8275; }
+.checkout-form-footer { color: #a9693f; }
+.customer-site .checkout-form-footer p { color: #6f675c; }
+
+.checkout-page .checkout-summary { border-top: 2px solid #211d18; background: #efe8dc; border-color: #e3dccf; border-top-color: #211d18; }
+.checkout-cover { height: 210px; }
+.checkout-summary-body { padding: 28px; }
+.customer-site .checkout-summary h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 500; line-height: 1.1; color: #211d18; letter-spacing: -.01em; }
+.checkout-schedule { border-color: #d9cfbd; }
+.customer-site .checkout-schedule p { color: #6f675c; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.checkout-schedule svg { color: #a9693f; }
+.checkout-schedule strong { color: #211d18; font-size: 14px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+.customer-site .checkout-summary h3 { font-size: 11px; color: #a9693f; letter-spacing: .22em; text-transform: uppercase; font-family: 'Jost', 'Segoe UI', sans-serif; font-weight: 500; }
+.checkout-price { color: #6f675c; font-size: 14px; }
+.checkout-price strong { color: #211d18; font-size: 15px; font-weight: 500; }
+.checkout-quote { border-top-color: #cfc4b1; }
+.checkout-awaiting { background: #fff; border-radius: 0; color: #a9693f; }
+.customer-site .checkout-awaiting p { color: #6f675c; }
+.checkout-discount strong { color: #8c5430; }
+.checkout-total { border-top: 1px solid #211d18; }
+.checkout-total > span { color: #211d18; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+.checkout-total strong { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: 38px; color: #211d18; letter-spacing: -.02em; }
+.customer-site .checkout-quote-note, .customer-site .checkout-submit-note { color: #6f675c; font-size: 12px; }
+.customer-site .checkout-submit { border-radius: 0; min-height: 56px; font-size: 12px; letter-spacing: .18em; }
+.checkout-support { background: transparent; border: 1px solid #cfc4b1; border-radius: 0; color: #a9693f; }
+.checkout-support > span { color: #6f675c; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.checkout-support strong { color: #211d18; font-size: 16px; letter-spacing: 0; text-transform: none; }
+
+.customer-site .checkout-success { border-radius: 0; border-color: #e3dccf; box-shadow: none; }
+.checkout-success-icon { background: #efe8dc; color: #a9693f; border-radius: 0; }
+.customer-site .checkout-success h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 400; font-size: 44px; color: #211d18; }
+.customer-site .checkout-success p { color: #6f675c; }
+
+/* Mã giảm giá trong trang đặt tour */
+.promotion-picker-toggle { border-radius: 0; border: 1px dashed #a9693f; background: #fbf8f3; color: #a9693f; }
+.promotion-picker-toggle small { color: #6f675c; }
+.promotion-picker-content { border-radius: 0; border-color: #e3dccf; background: #fbf8f3; }
+.promotion-picker-heading { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 500; }
+.promotion-picker-heading > span { border-radius: 0; background: #efe8dc; color: #a9693f; font-family: 'Jost', sans-serif; letter-spacing: .1em; }
+.customer-site .promotion-picker-note { color: #6f675c; }
+.promotion-best { border-radius: 0; border: 1px solid #e3dccf; border-left: 3px solid #a9693f; background: #efe8dc; color: #a9693f; }
+.customer-site .promotion-best p { color: #211d18; }
+.promotion-best p code { color: #8c5430; }
+.promotion-best p strong, .promotion-best-selected { color: #8c5430; }
+.promotion-voucher { border-radius: 0; border-color: #e3dccf; }
+.promotion-voucher-selected { border-color: #211d18; box-shadow: 0 0 0 1px #211d18; }
+.promotion-voucher-icon { background: #efe8dc; color: #a9693f; border-radius: 0; }
+.promotion-voucher-heading strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; font-weight: 500; }
+.promotion-voucher code { color: #8c5430; }
+.customer-site .promotion-voucher p, .promotion-voucher > small { color: #6f675c; }
+.promotion-voucher p strong, .promotion-voucher-name { color: #211d18; }
+.customer-site .promotion-voucher .promotion-savings, .promotion-voucher .promotion-savings strong { color: #8c5430; }
+.promotion-voucher-unavailable { background: #fbf8f3; }
+
+/* Thanh toán */
+.payment-demo-note { border: 1px solid #e3dccf; background: #efe8dc; border-radius: 0; color: #a9693f; }
+.payment-demo-note strong { color: #211d18; letter-spacing: .1em; text-transform: uppercase; }
+.customer-site .payment-demo-note p { color: #6f675c; font-size: 12px; }
+.payment-method { border-radius: 0; border-color: #e3dccf; transition: border-color .2s, background .2s; }
+.payment-method:hover { border-color: #a9693f; }
+.payment-method.selected { background: #fbf8f3; border-color: #211d18; box-shadow: 0 0 0 1px #211d18; }
+.payment-method input { accent-color: #a9693f; }
+.payment-method-icon { background: #efe8dc; color: #a9693f; border-radius: 0; }
+.payment-method-icon.method-momo { background: #f3e1e6; color: #a2395f; }
+.payment-method-copy > strong { color: #211d18; font-size: 15px; font-weight: 500; }
+.payment-method-copy strong small { border-radius: 0; background: #efe8dc; color: #8c5430; letter-spacing: .08em; text-transform: uppercase; }
+.payment-method-copy > span { color: #6f675c; font-size: 12px; }
+.payment-pending-note, .payment-review-note { background: #efe8dc; color: #8c5430; border-radius: 0; font-size: 12px; }
+.customer-site .payment-small-note, .customer-site .payment-bank-warning, .customer-site .payment-reference, .customer-site .payment-proof-note, .customer-site .payment-proof-form > p, .payment-proof-form > small { color: #6f675c; }
+.payment-bank-rows > div { border-bottom-color: #e3dccf; font-size: 14px; }
+.payment-bank-rows dt { color: #6f675c; }
+.payment-bank-rows dd { color: #211d18; font-weight: 500; }
+.payment-refresh { border-radius: 0; background: transparent; border: 1px solid #211d18; color: #211d18; letter-spacing: .1em; text-transform: uppercase; }
+.payment-refresh:hover { background: #211d18; color: #fff; }
+.payment-transaction { border-radius: 0; border-color: #e3dccf; }
+.customer-site .payment-transaction-heading h3 { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 500; }
+.payment-transaction-heading > strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; font-weight: 500; }
+.payment-status { border-radius: 0; background: #efe8dc; color: #6f675c; letter-spacing: .08em; text-transform: uppercase; }
+.payment-status-pending, .payment-status-proof_submitted { background: #f3e4c6; color: #8c5430; }
+.payment-status-success { background: #dfe8d6; color: #4b6a38; }
+.payment-status-failed, .payment-status-expired { background: #f1d9d3; color: #9a4a3b; }
+.payment-proof-form { border-top-color: #cfc4b1; }
+.payment-proof-form label { color: #6f675c; letter-spacing: .12em; text-transform: uppercase; }
+.payment-proof-form label em { color: #a9693f; }
+.customer-site .payment-proof-form input, .customer-site .payment-proof-form textarea { border-radius: 0; border-color: #e3dccf; }
+.payment-booking-code { background: #fbf8f3; border-radius: 0; color: #6f675c; letter-spacing: .1em; text-transform: uppercase; }
+.payment-booking-code strong { color: #211d18; }
+.payment-outcome > span { background: #efe8dc; color: #a9693f; border-radius: 0; }
+.customer-site .payment-outcome h2, .customer-site .payment-closed h2 { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 500; }
+.customer-site .payment-outcome p, .customer-site .payment-closed p { color: #6f675c; font-size: 14px; }
+.payment-outcome a { color: #211d18; text-decoration: underline; text-underline-offset: 4px; letter-spacing: .1em; text-transform: uppercase; }
+.payment-closed > svg { color: #a9693f; }
+.payment-empty { color: #a9693f; }
+.customer-site .payment-empty p { color: #6f675c; }
+
+/* Đặt chỗ thành công */
+.booking-success-page { background: #fbf8f3; padding-bottom: 96px; }
+.customer-site .success-receipt.checkout-success { border-radius: 0; box-shadow: none; border: 1px solid #e3dccf; }
+.success-hero { background: #efe8dc; border-bottom: 1px solid #d9cfbd; padding: 48px 32px 36px; }
+.success-check { color: #a9693f; background: #fff; border: 1px solid #cfc4b1; border-radius: 0; box-shadow: none; }
+.customer-site .success-hero h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(38px, 5vw, 60px); font-weight: 400; color: #211d18; line-height: 1; letter-spacing: -.025em; }
+.customer-site .success-hero > p { color: #6f675c; font-size: 14px; }
+.success-code { border: 1px solid #211d18; border-radius: 0; background: #fff; }
+.success-code > span { color: #6f675c; letter-spacing: .14em; text-transform: uppercase; }
+.success-code strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 500; }
+.success-status { border-radius: 0; background: #f3e4c6; color: #8c5430; letter-spacing: .1em; text-transform: uppercase; }
+.success-body { padding: 36px 40px; }
+.success-tour { border-bottom-color: #e3dccf; }
+.success-tour img { border-radius: 0; width: 140px; height: 100px; object-fit: cover; }
+.success-tour > div > span { color: #a9693f; letter-spacing: .22em; }
+.customer-site .success-tour h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 500; color: #211d18; line-height: 1.1; }
+.success-tour a { color: #211d18; text-decoration: underline; text-underline-offset: 4px; letter-spacing: .1em; text-transform: uppercase; }
+.success-details svg { color: #a9693f; }
+.success-details dt { color: #6f675c; letter-spacing: .14em; text-transform: uppercase; font-size: 10px; }
+.success-details dd { color: #211d18; font-size: 15px; font-weight: 500; }
+.success-amount { background: #efe8dc; border-radius: 0; }
+.success-amount span { color: #211d18; letter-spacing: .14em; text-transform: uppercase; }
+.success-amount small { color: #6f675c; }
+.success-amount > strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: 36px; }
+.success-advisory { background: #fbf8f3; border: 1px solid #e3dccf; border-radius: 0; color: #a9693f; }
+.success-advisory strong { color: #8c5430; letter-spacing: .1em; text-transform: uppercase; }
+.customer-site .success-advisory p { color: #6f675c; font-size: 13px; }
+.customer-site .success-next h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 500; color: #211d18; }
+.success-next li > span { border-radius: 0; background: #211d18; color: #fff; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 14px; }
+.success-next strong { color: #211d18; font-size: 14px; }
+.customer-site .success-next p { color: #6f675c; font-size: 13px; }
+.customer-site .success-actions .btn { min-height: 52px; }
+.success-footer { background: #fbf8f3; border-top-color: #e3dccf; }
+.success-footer > span { color: #6f675c; }
+.success-footer > a, .success-back { color: #211d18; letter-spacing: .1em; text-transform: uppercase; }
+.success-footer > a:hover, .success-back:hover { color: #a9693f; }
+
+@media (max-width: 1050px) {
+  .checkout-layout { grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; }
+}
+@media (max-width: 760px) {
+  .checkout-page { padding: 24px 0 64px; }
+  .checkout-page .container { width: calc(100% - 32px); }
+  .checkout-layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .customer-site .checkout-heading h1 { font-size: 38px; }
+  .checkout-page .checkout-card { padding: 22px 18px; }
+  .customer-site .checkout-card-title h2 { font-size: 26px; }
+  .success-body { padding: 26px 20px; }
+  .success-tour img { width: 84px; height: 84px; }
+  .customer-site .success-tour h2 { font-size: 22px; }
+  .checkout-total strong { font-size: 32px; }
+}

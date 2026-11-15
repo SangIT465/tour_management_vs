@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { money, date, queryString, safeNext, statusLabels } from '../src/utils.js';
+import { money, date, queryString, safeNext, statusLabels, promotionAvailablePath, sortVouchers } from '../src/utils.js';
 
 test('money distinguishes unavailable prices and free tickets', () => {
   assert.equal(money(null), 'Liên hệ');
@@ -25,4 +25,27 @@ test('login continuation accepts only internal routes', () => {
 });
 test('all backend booking statuses have Vietnamese labels', () => {
   for (const status of ['PENDING_PAYMENT', 'PENDING_CONFIRMATION', 'CONFIRMED', 'CANCEL_REQUESTED', 'CANCELLED', 'REJECTED', 'EXPIRED', 'COMPLETED']) assert.ok(statusLabels[status]);
+});
+
+test('promotion picker sends cart context so the backend can estimate the discount', () => {
+  const query = new URLSearchParams(promotionAvailablePath(3_500_000, 'schedule-1').split('?')[1]);
+  assert.equal(query.get('subtotal'), '3500000');
+  assert.equal(query.get('scheduleId'), 'schedule-1');
+  // Không có ngữ cảnh ⇒ gọi endpoint trần, backend trả danh sách không kèm ước tính.
+  assert.equal(promotionAvailablePath(undefined, undefined), '/promotions/available');
+  assert.equal(promotionAvailablePath(Number.NaN, ''), '/promotions/available');
+  // Tạm tính 0 là hợp lệ (đơn toàn em bé) nên vẫn phải gửi.
+  assert.equal(promotionAvailablePath(0, undefined), '/promotions/available?subtotal=0');
+});
+
+test('vouchers put usable codes first, then the biggest saving, without mutating input', () => {
+  const input = [
+    { code: 'BLOCKED', estimatedDiscount: 0, rejectedReason: 'Mã đã hết hạn' },
+    { code: 'SMALL', estimatedDiscount: 50_000, rejectedReason: null },
+    { code: 'BIG', estimatedDiscount: 300_000, rejectedReason: null },
+  ];
+  const sorted = sortVouchers(input);
+  assert.deepEqual(sorted.map(voucher => voucher.code), ['BIG', 'SMALL', 'BLOCKED']);
+  assert.deepEqual(input.map(voucher => voucher.code), ['BLOCKED', 'SMALL', 'BIG']);
+  assert.deepEqual(sortVouchers(null), []);
 });

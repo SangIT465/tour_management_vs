@@ -1,0 +1,150 @@
+/* Khu tài khoản khách hàng — phong cách editorial. Chỉ áp dụng trong `.customer-account-site`. */
+.customer-account-site { background: #fbf8f3; }
+.customer-account-site .account-shell { max-width: 1440px; gap: 56px; padding: 48px 48px 96px; grid-template-columns: 260px minmax(0, 1fr); }
+.customer-account-site .account-sidebar { background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; top: 24px; }
+.customer-account-site .account-sidebar-title { padding: 0 0 16px; border-bottom: 1px solid #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 500; color: #211d18; }
+.customer-account-site .account-sidebar-title > svg { color: #a9693f; }
+.customer-account-site .account-identity { text-align: left; padding: 28px 0 24px; border-bottom: 1px solid #e3dccf; }
+.customer-account-site .customer-avatar { margin: 0 0 16px; width: 76px; height: 76px; border-radius: 0; background: #efe8dc; border: 0; color: #8c5430; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; font-weight: 500; }
+.customer-account-site .account-identity h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; font-weight: 500; }
+.customer-account-site .account-identity p { color: #6f675c; font-size: 13px; }
+.customer-account-site .account-navigation { margin-top: 12px; gap: 0; }
+.customer-account-site .account-navigation a, .customer-account-site .account-signout { padding: 14px 0; gap: 14px; border-left: 0; border-bottom: 1px solid #e3dccf; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #211d18; font-weight: 500; transition: color .2s, padding .2s; }
+.customer-account-site .account-navigation a:hover { background: transparent; color: #a9693f; padding-left: 6px; }
+.customer-account-site .account-navigation a.active { background: transparent; color: #a9693f; border-left: 0; }
+.customer-account-site .account-signout { margin: 0; color: #6f675c; border-top: 0; width: 100%; }
+.customer-account-site .account-signout:hover { color: #a9693f; }
+
+.customer-account-site .account-main .panel { background: #fff; border: 1px solid #e3dccf; border-radius: 0; box-shadow: none; }
+.customer-account-site .account-main h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(40px, 4.4vw, 64px); font-weight: 400; line-height: 1; letter-spacing: -.025em; margin: 0 0 14px; }
+.customer-account-site .account-main > .container > p, .customer-account-site .my-bookings-page > p { color: #6f675c; font-size: 15px; margin-bottom: 32px; }
+.customer-account-site .account-main h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; letter-spacing: -.01em; }
+.customer-account-site .account-breadcrumbs { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #6f675c; margin-bottom: 28px; }
+.customer-account-site .account-breadcrumbs a { color: #211d18; }
+.customer-account-site .account-breadcrumbs a:hover { color: #a9693f; }
+.customer-account-site .account-breadcrumbs > span:not(:last-child) { color: #a9693f; }
+
+/* Tổng quan / lối tắt */
+.customer-account-site .account-shortcuts { gap: 24px; }
+.customer-account-site .account-shortcuts .panel { padding: 32px; transition: border-color .25s, transform .25s; }
+.customer-account-site .account-shortcuts .panel:hover { border-color: #211d18; }
+.customer-account-site .account-shortcuts > a > svg, .customer-account-site .account-shortcuts > a > span { color: #a9693f; }
+.customer-account-site .account-shortcuts h2 { font-size: 28px; margin-top: 22px; }
+.customer-account-site .account-shortcuts p, .customer-account-site .account-shortcuts span { color: #6f675c; font-size: 14px; }
+.customer-account-site .account-main .workspace-columns > .panel { border: 1px solid #e3dccf; border-radius: 0; padding: 32px; }
+.customer-account-site .account-main .workspace-columns h2 { font-size: 28px; color: #211d18; }
+.customer-account-site .account-main .workspace-columns p { color: #6f675c; font-size: 14px; }
+.customer-account-site .stat-grid .panel, .customer-account-site .stat-card { border-radius: 0; }
+
+/* Tour của tôi */
+.customer-account-site .my-bookings-page .booking-list { gap: 24px; }
+.customer-account-site .account-main .booking-row { padding: 28px; border: 1px solid #e3dccf; transition: border-color .25s; }
+.customer-account-site .account-main .booking-row:hover { border-color: #211d18; }
+.customer-account-site .my-bookings-page h2 { font-size: 28px; line-height: 1.1; margin: 20px 0 14px; }
+.customer-account-site .my-bookings-page .booking-code { color: #a9693f; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.customer-account-site .my-bookings-page .booking-row > p { color: #6f675c; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.customer-account-site .my-bookings-page .price { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 500; }
+.customer-account-site .btn.small { min-height: 40px; padding: 0 16px; }
+.customer-account-site .order-status { border-radius: 0; background: #f3e4c6; color: #8c5430; letter-spacing: .1em; text-transform: uppercase; font-size: 10px; font-weight: 500; padding: 5px 10px; }
+.customer-account-site .order-status.status-confirmed, .customer-account-site .order-status.status-completed { background: #dfe8d6; color: #4b6a38; }
+.customer-account-site .order-status.status-cancelled, .customer-account-site .order-status.status-rejected, .customer-account-site .order-status.status-expired { background: #f1d9d3; color: #9a4a3b; }
+
+/* Chi tiết đơn */
+.customer-account-site .order-page-heading h1 { font-size: clamp(34px, 3.6vw, 52px); margin: 0 0 12px; }
+.customer-account-site .order-back { border-radius: 0; background: #efe8dc; color: #211d18; }
+.customer-account-site .order-back:hover { background: #211d18; color: #fff; }
+.customer-account-site .order-subheading { color: #6f675c; font-size: 14px; }
+.customer-account-site .order-page-heading > small { color: #6f675c; }
+.customer-account-site .order-detail-grid { gap: 40px; grid-template-columns: minmax(0, 1fr) 380px; }
+.customer-account-site .order-tour-card { padding: 28px; }
+.customer-account-site .order-cover, .customer-account-site .order-thumbnails button { border-radius: 0; }
+.customer-account-site .order-thumbnails button.active { border-color: #a9693f; }
+.customer-account-site .order-tour-copy h2 { font-size: 30px; line-height: 1.1; letter-spacing: -.015em; }
+.customer-account-site .order-rating > span { color: #a9693f; }
+.customer-account-site .order-tour-copy li { color: #6f675c; font-size: 14px; }
+.customer-account-site .order-tour-copy li svg { color: #a9693f; }
+.customer-account-site .order-progress li:not(:last-child):before { background: #e3dccf; height: 1px; }
+.customer-account-site .order-progress li.done:not(:last-child):before { background: #211d18; }
+.customer-account-site .order-step-icon { border-radius: 0; background: #e3dccf; border-color: #fbf8f3; }
+.customer-account-site .order-progress .done .order-step-icon { background: #211d18; }
+.customer-account-site .order-progress .current .order-step-icon { background: #a9693f; box-shadow: 0 0 0 3px #efe8dc; }
+.customer-account-site .order-progress strong { letter-spacing: .08em; text-transform: uppercase; }
+.customer-account-site .order-progress small, .customer-account-site .order-status-note, .customer-account-site .booking-data-note { color: #6f675c; }
+.customer-account-site .order-tabs { border-bottom-color: #e3dccf; }
+.customer-account-site .order-tabs button { color: #6f675c; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; }
+.customer-account-site .order-tabs button.active { color: #211d18; border-bottom-color: #a9693f; }
+.customer-account-site .booking-overview-grid { gap: 24px; }
+.customer-account-site .booking-overview-grid .panel { padding: 28px; }
+.customer-account-site .booking-detail-page h2 { font-size: 26px; }
+.customer-account-site .booking-info-rows > div { border-radius: 0; border-bottom-color: #e3dccf; font-size: 14px; }
+.customer-account-site .booking-info-rows > div:nth-child(odd) { background: #fbf8f3; }
+.customer-account-site .booking-info-rows dt { color: #6f675c; }
+.customer-account-site .booking-info-rows dd { color: #211d18; }
+.customer-account-site .booking-transaction { border-bottom-color: #e3dccf; }
+.customer-account-site .booking-cancel-record { border-radius: 0; border-color: #e3dccf; }
+.customer-account-site .order-aside .panel { padding: 28px; }
+.customer-account-site .order-total > h2 { font-size: 28px; }
+.customer-account-site .order-price-line { font-size: 14px; }
+.customer-account-site .order-price-line > strong { color: #211d18; font-weight: 500; }
+.customer-account-site .order-price-line .discount { color: #8c5430; }
+.customer-account-site .order-total-line { background: #efe8dc; border-radius: 0; margin: 20px -28px -28px; padding: 24px 28px; }
+.customer-account-site .order-total-line > strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 36px; font-weight: 500; }
+.customer-account-site .order-help-icon { background: #efe8dc; color: #a9693f; border-radius: 0; }
+.customer-account-site .order-help p { color: #6f675c; font-size: 13px; }
+.customer-account-site .order-help > a { background: transparent; border: 1px solid #211d18; border-radius: 0; color: #211d18; letter-spacing: .12em; text-transform: uppercase; font-size: 11px; }
+.customer-account-site .order-help > a:hover { background: #211d18; color: #fff; }
+.customer-account-site .text-button { color: #211d18; text-decoration: underline; text-underline-offset: 4px; }
+.customer-account-site .text-button:hover { color: #a9693f; }
+
+/* Voucher */
+.customer-account-site .voucher-grid { gap: 24px; }
+.customer-account-site .voucher-grid .panel { padding: 28px; border-top: 2px solid #211d18; }
+.customer-account-site .voucher-headline { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 32px; font-weight: 500; }
+.customer-account-site .voucher-badge { background: #efe8dc; color: #8c5430; border-radius: 0; letter-spacing: .1em; text-transform: uppercase; }
+.customer-account-site .voucher-code { background: #fbf8f3; border: 1px dashed #a9693f; border-radius: 0; color: #8c5430; letter-spacing: .14em; }
+.customer-account-site .voucher-card p { color: #6f675c; font-size: 13px; }
+.customer-account-site .voucher-card .voucher-name { color: #211d18; font-size: 14px; }
+
+/* Thông báo, thẻ bản ghi, tab */
+.customer-account-site .records-tabs { border-bottom-color: #e3dccf; }
+.customer-account-site .records-tabs button { color: #6f675c; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; }
+.customer-account-site .records-tabs button[aria-pressed=true] { color: #211d18; border-bottom-color: #a9693f; }
+.customer-account-site .notification-feed { border: 0; border-top: 1px solid #211d18; border-radius: 0; background: transparent; }
+.customer-account-site .notification-row { border-bottom: 1px solid #e3dccf; background: transparent; }
+.customer-account-site .notification-row.unread { background: #efe8dc; }
+.customer-account-site .notification-symbol { border-radius: 0; background: #fff; color: #a9693f; }
+.customer-account-site .notification-row h2 { font-size: 24px; color: #211d18; }
+.customer-account-site .notification-row p, .customer-account-site .notification-meta time { color: #6f675c; }
+.customer-account-site .record-badge { border-radius: 0; background: #efe8dc; color: #6f675c; letter-spacing: .1em; text-transform: uppercase; }
+.customer-account-site .record-badge.info { background: #211d18; color: #fff; }
+.customer-account-site .records-page .record-card, .customer-account-site .records-surface { border-radius: 0; border-color: #e3dccf; box-shadow: none; }
+.customer-account-site .records-page .record-card h2, .customer-account-site .records-page .record-card h3 { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px !important; font-weight: 500; }
+.customer-account-site .record-card p, .customer-account-site .record-card > small { color: #6f675c; font-size: 13px; }
+.customer-account-site .record-action { border-radius: 0; border-color: #211d18; background: transparent; color: #211d18; letter-spacing: .1em; text-transform: uppercase; }
+.customer-account-site .record-action:hover { background: #211d18; color: #fff; border-color: #211d18; }
+.customer-account-site .record-action.primary { background: #211d18; color: #fff; }
+.customer-account-site .record-action.primary:hover { background: #a9693f; border-color: #a9693f; }
+.customer-account-site .record-dialog { border-radius: 0; border-color: #e3dccf; background: #fbf8f3; color: #211d18; }
+.customer-account-site .action-form input, .customer-account-site .action-form select, .customer-account-site .action-form textarea { border-radius: 0; border-color: #e3dccf; }
+.customer-account-site .action-form label { color: #6f675c; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; }
+
+/* Yêu thích */
+.customer-account-site .results-heading { border-bottom: 1px solid #e3dccf; padding-bottom: 18px; margin-bottom: 28px; }
+
+@media (max-width: 1250px) {
+  .customer-account-site .account-shell { grid-template-columns: 220px minmax(0, 1fr); gap: 32px; padding: 32px 28px 72px; }
+  .customer-account-site .order-detail-grid { grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; }
+}
+@media (max-width: 950px) {
+  .customer-account-site .account-shell { grid-template-columns: 190px minmax(0, 1fr); gap: 24px; }
+  .customer-account-site .order-detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 650px) {
+  .customer-account-site .account-shell { padding: 20px 16px 56px; }
+  .customer-account-site .account-sidebar { margin-bottom: 24px; }
+  .customer-account-site .account-main h1, .customer-account-site .order-page-heading h1 { font-size: 36px; }
+  .customer-account-site .account-main .booking-row, .customer-account-site .order-tour-card, .customer-account-site .booking-overview-grid .panel, .customer-account-site .order-aside .panel, .customer-account-site .account-shortcuts .panel, .customer-account-site .account-main .workspace-columns > .panel { padding: 20px; }
+  .customer-account-site .order-total-line { margin: 20px -20px -20px; padding: 20px; }
+  .customer-account-site .order-total-line > strong { font-size: 30px; }
+  .customer-account-site .account-navigation.open { grid-template-columns: 1fr; }
+}

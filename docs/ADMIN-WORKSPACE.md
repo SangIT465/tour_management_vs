@@ -24,10 +24,18 @@ Kiểm tra frontend: `npm test` và `npm run build` trong thư mục frontend. K
 - Dialog có tên truy cập, focus mặc định của trình duyệt, giữ focus trong modal, khóa cuộn nền và đóng bằng nút/Escape. Bảng rộng chỉ cuộn trong vùng bảng, không tràn ngang toàn trang.
 - Kiểm thử trình duyệt bao gồm bảng admin, bộ lọc, cập nhật hồ sơ giả lập, STAFF chỉ đọc, mobile 390/320px, phản hồi hỗ trợ, đánh dấu thông báo, sửa đánh giá và đóng bằng Escape. Không ghi dữ liệu thật.
 
-- Sidebar sáng chia nhóm, tìm kiếm Tour/Booking, banner Hạ Long, thẻ thống kê, biểu đồ dòng tiền theo tháng và booking theo trạng thái; bảng đơn gần đây và các khối tour được đặt nhiều, khách mới, lịch sắp tới, thông báo.
+- Sidebar sáng chia nhóm, tìm kiếm Tour/Booking, lời chào dạng chữ (không còn ảnh banner), thẻ thống kê, biểu đồ dòng tiền theo tháng và booking theo trạng thái; bảng đơn gần đây và các khối tour được đặt nhiều, khách mới, lịch sắp tới, thông báo.
 - Báo cáo chi tiết, bộ lọc và xuất CSV vẫn ở `#/admin?tab=reports`, yêu cầu `report:read`.
 - Dòng tiền lấy từ `reports/overview`: tiền nhận chưa trừ hoàn, không phải lợi nhuận. Chọn năm cũ sẽ hiển thị tổng tiền nhận năm đó trên thẻ thay cho tháng hiện tại.
 - Trạng thái booking và tour được đặt nhiều chỉ thống kê tối đa 100 booking gần nhất, có chú thích trên giao diện. Không đánh đồng trạng thái đơn với thanh toán. Tổng tiền tour là giá trị đơn, không phải tiền thực nhận; loại đơn hủy/từ chối/hết hạn.
 - Không giả số tăng trưởng hoặc badge thông báo. API và điều hướng theo quyền hiện có; không thêm menu giả cho nghiệp vụ chưa tồn tại.
 - Đơn gần đây mở chi tiết bằng tham số `booking`; tìm kiếm truyền từ khóa trên route. Có menu mobile, thu gọn sidebar desktop, tải/lỗi/trống và thử lại; không cài thư viện biểu đồ mới.
 - Kiểm thử tại `D:\nam4\project\tour_management\frontend`: `npm test`, `npm run build`, `node scripts/verify-travel-ui.mjs`. Dữ liệu admin trong kiểm thử trình duyệt là fixture, không ghi dữ liệu thật.
+
+## Phong cách chuyên nghiệp cho khu vực quản trị (`admin-pro.css`)
+
+- File `frontend/src/admin-pro.css` được nạp **cuối cùng** trong `main.jsx`, ghi đè `workspace.css`, `admin.css` và `records.css`. Mọi selector nằm trong phạm vi `.tourgo-admin` nên không ảnh hưởng khu vực khách hàng và `.staff-shell`.
+- Token: ink `#111827`, text `#374151`, muted `#6b7280`, line `#e5e7eb`, nền `#f5f6f8`, bề mặt trắng. Chỉ có **một** màu nhấn `#2f5bc7` (soft `#eaeffb`). Màu ngữ nghĩa ok/warn/bad chỉ dùng cho trạng thái. Bo góc 10px/8px, khoảng cách 16px.
+- Quy tắc: không gradient, không đổ bóng màu, dùng viền 1px thay bóng. Icon thẻ thống kê cùng một tông, chữ tối thiểu 12px, số dùng `tabular-nums`. Topbar sticky cao 60px, nội dung tối đa 1520px với padding 28px 32px.
+- Tổng quan: lưới chính `1fr + 340px`, lưới dưới 3 cột. Ở ≤1250px lưới chính thu về 1 cột và lưới dưới còn 2 cột; ở ≤1000px lưới dưới còn 1 cột. Biểu đồ tròn dùng bảng màu dịu khai báo trong `AdminOverview.jsx`.
+- Không đổi tên class hay markup, để `scripts/verify-travel-ui.mjs` và `frontend/tests` tiếp tục hoạt động.

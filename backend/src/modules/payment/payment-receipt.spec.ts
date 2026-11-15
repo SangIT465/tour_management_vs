@@ -19,9 +19,15 @@ function fixture() {
   const invoices = { issue: vi.fn().mockResolvedValue(invoice) };
   const mail = { enqueue: vi.fn().mockResolvedValue(undefined) };
   const repo: any = { ...paymentRepository, manager };
-  const service = new PaymentService(repo, {} as any, eventRepository as any, { getOrFail: vi.fn().mockResolvedValue(booking) } as any, {} as any, invoices as any, mail as any);
+  // Tham số cuối là `PromotionService` – chỉ cần `confirmRedemption` để chốt sổ cái.
+  const promotions = { confirmRedemption: vi.fn().mockResolvedValue(1) };
+  const service = new PaymentService(
+    repo, {} as any, eventRepository as any,
+    { getOrFail: vi.fn().mockResolvedValue(booking) } as any,
+    {} as any, invoices as any, mail as any, promotions as any,
+  );
   const webhook = { txnRef: 'REF001', gateway: 'VNPAY', gatewayTxnNo: 'GATE001', amount: 900_000, success: true };
-  return { service, booking, payment, manager, invoices, mail, webhook, paymentRepository };
+  return { service, booking, payment, manager, invoices, mail, promotions, webhook, paymentRepository };
 }
 
 describe('Payment receipt workflow', () => {

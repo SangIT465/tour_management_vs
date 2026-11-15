@@ -1,12 +1,16 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { PromotionService } from './promotion.service.js';
 import { Promotion } from './entities/promotion.entity.js';
-import { PromotionType } from '../../common/enums/index.js';
+import { PromotionKind, PromotionStatus, PromotionType } from '../../common/enums/index.js';
 
 function fixture(overrides = {}, uses = 0) {
+  // `new Promotion()` không chạy default của DB ⇒ phải khai báo đủ cột mà
+  // `isUsable()` đọc, đặc biệt là `status` (nguồn sự thật thay cho `active`).
   const promotion = Object.assign(new Promotion(), {
     id: 'promotion', code: 'SUMMER', type: PromotionType.PERCENT, value: 10, minOrder: 1_000_000,
     maxDiscount: 200_000, usageLimit: 10, usedCount: 0, perUserLimit: 1, active: true,
+    status: PromotionStatus.ACTIVE, kind: PromotionKind.PUBLIC,
+    budgetCap: null, budgetUsed: 0, dailyLimit: null, dailyUsed: 0, dailyDate: null,
     validFrom: new Date(Date.now() - 60_000), validTo: new Date(Date.now() + 60_000), ...overrides,
   });
   const query = { where: vi.fn().mockReturnThis(), andWhere: vi.fn().mockReturnThis(), getCount: vi.fn().mockResolvedValue(uses) };

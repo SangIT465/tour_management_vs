@@ -38,6 +38,7 @@ import { Booking } from './entities/booking.entity.js';
 import { CancelRequest } from './entities/cancel-request.entity.js';
 import type { PolicySnapshot } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
+import { BookingMailService } from './services/booking-mail.service.js';
 import { InvoiceService } from './services/invoice.service.js';
 import { renderInvoice } from './templates/invoice.template.js';
 import { Passenger } from './entities/passenger.entity.js';
@@ -75,6 +76,7 @@ export class BookingService {
     private readonly promotionService: PromotionService,
     private readonly events: EventEmitter2,
     private readonly invoices: InvoiceService,
+    private readonly bookingMail: BookingMailService,
   ) { }
 
   /**
@@ -198,15 +200,31 @@ export class BookingService {
     passengers: PassengerInputDto[],
     promotionCode?: string,
     customerId?: string,
+    channel: BookingChannel = BookingChannel.ONLINE,
   ): Promise<BookingQuote> {
     const schedule = await this.loadScheduleOrFail(scheduleId);
     const priced = this.pricePassengers(schedule, passengers);
     const seatCount = this.countSeats(priced);
 
-    const promotion = promotionCode ? await this.promotionService.findUsableOrFail(promotionCode, priced.subtotal, undefined, customerId) : null;
-    const discount = promotion ? promotion.calculateDiscount(priced.subtotal) : 0;
+    /**
+     * Báo giá dùng **cùng engine** với lúc tạo đơn: nhờ vậy con số khách thấy ở
+     * bước xem trước bằng đúng con số server ghi vào `bookings.discount`, kể cả
+     * khi mã bị giới hạn theo tour/danh mục/điểm đến/kênh bán/ngân sách.
+     */
+    const evaluated = promotionCode && customerId
+      ? await this.promotionService.evaluateForBooking({
+        code: promotionCode,
+        subtotal: priced.subtotal,
+        scheduleId: schedule.id,
+        customerId,
+        channel,
+      })
+      : null;
+    const promotion = evaluated?.promotion ?? null;
+    const discount = evaluated?.discount ?? 0;
 
     const held = await this.scheduleService.sumActiveHeldSeats(scheduleId);
+    const blockedReason = this.blockedReasonFor(schedule, seatCount, held);
     return {
       scheduleId,
       tourId: schedule.tourId,
@@ -219,7 +237,8 @@ export class BookingService {
       total: priced.subtotal - discount,
       promotionCode: promotion?.code ?? null,
       availableSeats: Math.max(schedule.availableSeats(held), 0),
-      canBook: schedule.status === ScheduleStatus.OPEN && schedule.canBook(seatCount, held),
+      canBook: blockedReason === null,
+      blockedReason,
     };
   }
 
@@ -248,7 +267,24 @@ export class BookingService {
     this.assertBookable(schedule);
     const priced = this.pricePassengers(schedule, dto.passengers);
     const seatCount = this.countSeats(priced);
-    if (seatCount < 1) throw new BadRequestException('Booking phải có ít nhất 1 chỗ');
+    /**
+     * Chặn sớm bằng đúng câu chữ mà `POST /bookings/quote` đã trả về.
+     *
+     * Trước đây nhánh này chỉ kiểm `seatCount < 1` rồi để `holdSeats` ném 409 khi
+     * hết chỗ. Khách nhận hai thông báo khác nhau cho cùng một tình huống tuỳ vào
+     * việc họ bấm "Xem báo giá" hay "Xác nhận đặt tour".
+     *
+     * Khi client đã giữ chỗ trước (`holdId`), số chỗ của chính hold đó **đã bị trừ**
+     * khỏi `availableSeats`, nên kiểm sức chứa ở đây sẽ báo sai "không đủ chỗ".
+     * `consumeHold` bên trong transaction mới là nơi kiểm đúng.
+     */
+    const blockedReason = this.blockedReasonFor(
+      schedule,
+      seatCount,
+      dto.holdId ? 0 : await this.scheduleService.sumActiveHeldSeats(schedule.id),
+      { skipCapacity: Boolean(dto.holdId) },
+    );
+    if (blockedReason) throw new BadRequestException(blockedReason);
 
     const id = await this.bookingRepo.manager.transaction('READ COMMITTED', async (manager) => {
       // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
@@ -257,15 +293,29 @@ export class BookingService {
         : await this.scheduleService.holdSeats(schedule.id, actor.id, seatCount, manager);
 
       // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
-      const promotion = dto.promotionCode
-        ? await this.promotionService.findUsableOrFail(dto.promotionCode, priced.subtotal, manager, customerId)
+      const channel = dto.channel ?? (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE);
+      /**
+       * Kiểm tra mã bằng engine **trong** transaction: khóa dòng mã (pessimistic_write)
+       * rồi mới xét phạm vi/kênh/ngân sách/hạn mức ngày. Nhờ vậy hai request đồng
+       * thời không thể cùng vượt trần, và mã giới hạn theo tour không áp nhầm tour khác.
+       */
+      const evaluated = dto.promotionCode
+        ? await this.promotionService.evaluateForBooking({
+          code: dto.promotionCode,
+          subtotal: priced.subtotal,
+          scheduleId: schedule.id,
+          customerId,
+          channel,
+          manager,
+        })
         : null;
+      const promotion = evaluated?.promotion ?? null;
       const booking = manager.create(Booking, {
         code: await this.nextBookingCode(manager),
         scheduleId: schedule.id,
         customerId,
         createdBy: counter ? actor.id : null,
-        channel: dto.channel ?? (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE),
+        channel,
         contactName: dto.contactName.trim(),
         contactPhone: dto.contactPhone.trim(),
         contactEmail: dto.contactEmail.trim().toLowerCase(),
@@ -292,18 +342,41 @@ export class BookingService {
         }),
       );
       // `recalculateTotals` là nguồn sự thật cuối cùng của `subtotal/discount/total`.
-      booking.recalculateTotals(promotion ? promotion.calculateDiscount(priced.subtotal) : 0);
+      // Dùng `evaluated.discount` (engine) chứ không tính lại: engine đã áp trần
+      // ngân sách và trần tổng giảm, tính lại sẽ lệch.
+      booking.recalculateTotals(evaluated?.discount ?? 0);
 
       const saved = await manager.save(Booking, booking);
 
       // Bước 3: nối hold với booking để job dọn chỗ tìm lại được.
       await manager.update(SeatHold, { id: hold.holdId }, { bookingId: saved.id });
 
-      // Tăng `usedCount` qua PromotionService: câu UPDATE có điều kiện
-      // `used_count < usage_limit` nên hai request đồng thời không vượt trần.
-      if (promotion) {
-        await this.promotionService.reserveForBooking(promotion.id, manager);
+      /**
+       * Giữ lượt + ghi sổ cái trong cùng transaction:
+       * - `reserveForBooking` tăng `used_count`/`budget_used`/`daily_used` bằng câu
+       *   UPDATE có điều kiện, nên hai request đồng thời không vượt trần.
+       * - Dòng `promotion_redemptions` (RESERVED) là nguồn sự thật để đếm hạn mức
+       *   mỗi khách và để đối chiếu về sau; `PaymentService` sẽ chốt thành CONFIRMED.
+       * - `booking_discounts` lưu chi tiết từng mã + số tiền, phục vụ báo cáo.
+       */
+      if (promotion && evaluated) {
+        await this.promotionService.reserveForBooking(promotion.id, manager, {
+          bookingId: saved.id,
+          customerId,
+          discountAmount: evaluated.discount,
+          subtotalAtUse: priced.subtotal,
+        });
+        await this.promotionService.recordBookingDiscounts(manager, saved.id, [
+          { promotion, discount: evaluated.discount },
+        ]);
       }
+
+      // Email "đã ghi nhận đơn" nằm trong cùng transaction: rollback thì không có
+      // thư rác, commit thì worker gửi nền (xem BookingMailService).
+      await this.enqueueBookingMail(manager, saved, 'created', {
+        schedule,
+        passengers: saved.passengers ?? [],
+      });
 
       this.logger.log(`Tạo booking ${saved.code} (${seatCount} chỗ) cho lịch ${schedule.id}`);
       return saved.id;
@@ -342,6 +415,10 @@ export class BookingService {
       await manager.save(Booking, booking);
       await manager.increment(DepartureSchedule, { id: booking.scheduleId }, 'soldSeats', booking.seatCount);
       await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
+
+      // Chỉ xếp thư khi trạng thái thực sự đổi; nhánh idempotent đã return sớm.
+      await this.enqueueBookingMail(manager, booking, 'confirmed');
+
       return booking;
     });
 
@@ -696,6 +773,27 @@ export class BookingService {
     booking.note = `${booking.note ? `${booking.note}\n` : ''}Hủy: ${reason.trim()}`;
   }
 
+  /**
+   * Xếp email đơn đặt tour vào outbox, **không** để lỗi mail làm hỏng nghiệp vụ.
+   *
+   * Lỗi ở đây chỉ có thể là lỗi ghi `mail_messages`; booking vẫn phải được tạo
+   * hoặc xác nhận bình thường nên ta nuốt lỗi và ghi cảnh báo để vận hành theo dõi.
+   */
+  private async enqueueBookingMail(
+    manager: EntityManager,
+    booking: Booking,
+    event: 'created' | 'confirmed',
+    preloaded: { schedule?: DepartureSchedule; passengers?: Passenger[] } = {},
+  ): Promise<void> {
+    try {
+      await this.bookingMail.enqueue(manager, booking, event, preloaded);
+    } catch (error) {
+      this.logger.warn(
+        `Không xếp được email "${event}" cho đơn ${booking.code}: ${(error as Error).message}`,
+      );
+    }
+  }
+
   // ===== nội bộ: đọc dữ liệu =====
 
   private async loadScheduleOrFail(scheduleId: string): Promise<DepartureSchedule> {
@@ -733,10 +831,22 @@ export class BookingService {
   /**
    * Nhả lượt dùng mã khi booking không còn giữ chỗ (hủy / từ chối / hết hạn).
    * Chỉ gọi khi booking thực sự có gắn mã để tránh UPDATE vô ích.
+   *
+   * Truyền `bookingId` + `discount` để service hoàn đúng `budget_used` và đánh
+   * dấu dòng sổ cái `RELEASED` kèm lý do – nếu chỉ giảm `used_count` thì báo cáo
+   * ngân sách và lịch sử dùng mã sẽ sai dần.
    */
-  private async releasePromotion(manager: EntityManager, booking: Booking): Promise<void> {
+  private async releasePromotion(
+    manager: EntityManager,
+    booking: Booking,
+    reason: string = booking.status,
+  ): Promise<void> {
     if (!booking.promotionId) return;
-    await this.promotionService.releaseForBooking(booking.promotionId, manager);
+    await this.promotionService.releaseForBooking(booking.promotionId, manager, {
+      bookingId: booking.id,
+      discountAmount: booking.discount,
+      reason,
+    });
   }
 
   /** Chính sách hủy gắn với tour của lịch. */
@@ -769,6 +879,47 @@ export class BookingService {
     }
   }
 
+  /**
+   * Lý do **không thể đặt** lịch này với đúng số hành khách đã chọn, hoặc `null`
+   * nếu đặt được.
+   *
+   * Dùng chung cho `quote()` và `create()` để hai endpoint không bao giờ lệch nhau:
+   * báo giá nói "đặt được" thì tạo đơn cũng phải đặt được. Trước đây `quote()`
+   * chỉ trả `canBook` mà không nói vì sao, còn `create()` ném 400/409 với câu chữ
+   * khác hẳn – khách thấy nút bị khoá mà không biết sửa gì.
+   */
+  private blockedReasonFor(
+    schedule: DepartureSchedule,
+    seatCount: number,
+    heldSeats: number,
+    options: { skipCapacity?: boolean } = {},
+  ): string | null {
+    if (schedule.status === ScheduleStatus.DRAFT) return 'Lịch khởi hành chưa mở bán';
+    if (schedule.status !== ScheduleStatus.OPEN) {
+      return `Lịch khởi hành đang ở trạng thái ${schedule.status} – không thể đặt`;
+    }
+    if (schedule.startDate < this.todayInVietnam()) return 'Ngày khởi hành đã qua';
+    /**
+     * Em bé dưới 2 tuổi ngồi cùng người lớn nên không chiếm ghế. Đơn chỉ toàn em bé
+     * sẽ có `seatCount = 0` và bị chặn ở đây – trước đây lỗi này chỉ lộ ra ở
+     * `create()` dưới dạng 400 "Booking phải có ít nhất 1 chỗ", sau khi khách đã
+     * điền xong toàn bộ form.
+     */
+    if (seatCount < 1) {
+      return 'Đơn cần ít nhất 1 hành khách từ 2 tuổi trở lên (em bé dưới 2 tuổi không chiếm chỗ)';
+    }
+    // Client đã giữ chỗ: chỗ của hold đã bị trừ khỏi `availableSeats` nên bỏ qua bước này.
+    if (options.skipCapacity) return null;
+
+    const available = Math.max(schedule.availableSeats(heldSeats), 0);
+    if (available < seatCount) {
+      return available === 0
+        ? 'Lịch khởi hành đã hết chỗ'
+        : `Chỉ còn ${available} chỗ trống, không đủ cho ${seatCount} hành khách`;
+    }
+    return null;
+  }
+
   // ===== nội bộ: tính giá (server là nguồn sự thật) =====
 
   /**
@@ -779,8 +930,24 @@ export class BookingService {
    */
   private pricePassengers(schedule: DepartureSchedule, passengers: PassengerInputDto[]) {
     const startDate = schedule.startDate;
-    const lines = passengers.map((passenger) => {
+    const lines = passengers.map((passenger, index) => {
       const dob = this.normalizeDate(passenger.dob);
+      /**
+       * Ngày sinh phải có thật và không được sau ngày khởi hành.
+       *
+       * `@IsDateString()` chỉ kiểm định dạng, nên `2030-01-01` vẫn lọt qua và
+       * `ageAt()` cho ra tuổi âm ⇒ hành khách bị xếp nhầm thành em bé, đơn có
+       * `seatCount = 0` và bị chặn bằng một thông báo chẳng liên quan gì tới
+       * ngày sinh khách vừa nhập.
+       */
+      if (Number.isNaN(Date.parse(dob))) {
+        throw new BadRequestException(`Hành khách ${index + 1}: ngày sinh không hợp lệ`);
+      }
+      if (dob > startDate.slice(0, 10)) {
+        throw new BadRequestException(
+          `Hành khách ${index + 1}: ngày sinh không được sau ngày khởi hành (${startDate.slice(0, 10)})`,
+        );
+      }
       const age = this.ageAt(dob, startDate);
       const type = this.classify(age);
       const unitPrice = this.priceFor(schedule, type);

@@ -1,0 +1,44 @@
+/* Đăng nhập khách hàng — phong cách editorial (ghi đè login.css, nạp sau). */
+.destination-login { background: #fbf8f3; font-family: 'Jost', 'Segoe UI', sans-serif; }
+.login-landscape:after { background: linear-gradient(180deg, rgb(20 16 12 / .6) 0%, rgb(20 16 12 / .3) 45%, rgb(20 16 12 / .78) 100%); }
+.customer-site .login-header .tourgo-brand { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; font-weight: 500; letter-spacing: -.5px; }
+.login-header nav { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.login-header nav a:hover { color: #f0d9b5; }
+.login-register-link { border-radius: 0; background: transparent; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; }
+.login-register-link:hover { background: #fff; color: #211d18; }
+.login-eyebrow { color: #f0d9b5; font-size: 12px; letter-spacing: .26em; }
+.customer-site .login-story-copy h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 400; font-size: clamp(44px, 5.4vw, 84px); line-height: 1; letter-spacing: -.025em; margin: 18px 0 26px; text-wrap: balance; }
+.login-story-copy h1 em { font-style: italic; color: #f0d9b5; }
+.customer-site .login-story-copy > p { font-size: 17px; max-width: 46ch; color: rgb(255 255 255 / .9); }
+.login-benefits > div > span { border-radius: 0; border-color: rgb(255 255 255 / .6); background: transparent; }
+.login-benefits strong { font-weight: 500; letter-spacing: .04em; }
+.login-benefits small { color: rgb(255 255 255 / .8); }
+.login-form-side { background: #fbf8f3; }
+.login-form-side:before { display: none; }
+.customer-site .login-card { background: #fff; border: 1px solid #e3dccf; border-radius: 0; box-shadow: none; padding: 44px 40px 28px; }
+.customer-site .login-card > .brand { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; font-weight: 500; color: #211d18; }
+.customer-site .login-card h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 40px; font-weight: 400; letter-spacing: -.02em; color: #211d18; }
+.customer-site .login-card .login-intro { color: #6f675c; font-size: 14px; }
+.customer-site .login-card label { font-size: 11px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: #6f675c; }
+.login-input { border-radius: 0; border: 1px solid #e3dccf; box-shadow: none; color: #6f675c; }
+.login-input:focus-within { border-color: #a9693f; box-shadow: inset 0 -2px 0 #a9693f; }
+.customer-site .login-input input { font-size: 14px; color: #211d18; letter-spacing: 0; text-transform: none; }
+.customer-site .login-input input::placeholder { color: #9a9185; }
+.password-toggle { color: #6f675c; }
+.login-options > span { color: #6f675c; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.login-options > a { color: #211d18; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+.login-options > a:hover { color: #a9693f; }
+.customer-site .login-submit { background: #211d18; border-radius: 0; box-shadow: none; font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; }
+.customer-site .login-submit:hover { background: #a9693f; }
+.login-divider { color: #6f675c; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; }
+.login-divider:before, .login-divider:after { background: #e3dccf; }
+.login-social button { border-radius: 0; border-color: #e3dccf; color: #211d18; font-size: 13px; transition: border-color .2s, background .2s; }
+.login-social button:hover:not(:disabled) { border-color: #211d18; background: #fbf8f3; }
+.customer-site .login-social-note, .customer-site .login-switch, .login-internal, .login-password-help { color: #6f675c; }
+.login-switch .text-button { color: #211d18; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; }
+.login-switch .text-button:hover { color: #a9693f; }
+@media (max-width: 760px) {
+  .customer-site .login-card { padding: 30px 22px 22px; }
+  .customer-site .login-card h2 { font-size: 34px; }
+  .customer-site .login-story-copy h1 { font-size: clamp(38px, 10vw, 54px); }
+}

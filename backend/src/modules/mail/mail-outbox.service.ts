@@ -16,7 +16,7 @@ export class MailOutboxService {
   constructor(
     @InjectRepository(MailMessage) private readonly messages: Repository<MailMessage>,
     private readonly transport: MailTransportService,
-  ) {}
+  ) { }
 
   async enqueue(manager: EntityManager, input: EnqueueMail): Promise<void> {
     // The payment row is locked by the caller; this unique key also prevents duplicate jobs.
@@ -65,6 +65,7 @@ export class MailOutboxService {
       if (message.attempts >= MAX_ATTEMPTS) {
         message.status = 'FAILED'; message.leaseToken = null;
         await repo.save(message);
+        this.logger.error(`Email ${message.id} (${message.deduplicationKey}) bỏ cuộc sau ${message.attempts} lần thử`);
         return null;
       }
       message.status = 'SENDING'; message.attempts += 1; message.leaseToken = uuidv4();
@@ -90,5 +91,10 @@ export class MailOutboxService {
     }
     // If acknowledgement fails, the lease allows recovery after a restart.
     await this.messages.update(where, { status: 'SENT', sentAt: new Date(), leaseToken: null, lastError: null });
+    // Log sau khi đã ghi nhận SENT: log thành công là dấu hiệu duy nhất cho thấy
+    // thư thực sự rời khỏi hàng đợi (trước đây chỉ có log lỗi nên tưởng như không gửi).
+    this.logger.log(
+      `Đã gửi email ${message.id} "${message.deduplicationKey}" tới ${message.recipient} (lần ${message.attempts})`,
+    );
   }
 }

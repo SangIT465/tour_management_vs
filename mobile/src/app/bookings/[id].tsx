@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Screen, Heading, Card, Title, Copy, Row, Field, Button, LoadState, LoginRequired, Badge, Message, layout } from '../../components/ui';
+import { Screen, Heading, Card, Title, Copy, Row, Field, Button, LoadState, LoginRequired, Badge, Message, AppText as Text } from '../../components/ui';
 import { useResource } from '../../hooks/use-resource';
 import { api } from '../../lib/api';
 import { openInvoice } from '../../lib/invoice';
+import { fonts, palette, tracking } from '../../theme';
 import { date, dateTime, money, statusNames, ticketNames } from '../../lib/format';
 import type { Booking, Payments } from '../../lib/types';
 
@@ -31,10 +32,20 @@ function BookingDetail({ id }: { id: string }) {
   }
   const item = booking.data;
   return <Screen refresh={() => { booking.refresh(); payments.refresh(); }} refreshing={booking.loading && !!item}><LoadState loading={booking.loading && !item} error={booking.error} retry={booking.refresh} /><Message text={error} error /><Message text={notice} />
-    {item && <><Heading title={item.tourName} subtitle={`Mã đặt tour: ${item.code}`} /><Badge>{statusNames[item.status] ?? item.status}</Badge><Card><Title>Thông tin hành trình</Title><Row label="Ngày đi" value={date(item.startDate)} /><Row label="Ngày về" value={date(item.endDate)} /><Row label="Hành khách" value={item.passengerCount} /><Row label="Ngày đặt" value={dateTime(item.createdAt)} />{!!item.expiresAt && <Row label="Hạn thanh toán" value={dateTime(item.expiresAt)} />}</Card>
+    {item && <>
+      <Heading eyebrow={`MÃ ĐƠN · ${item.code}`} title={item.tourName} subtitle={`${date(item.startDate)} — ${date(item.endDate)}`} />
+      <View style={s.statusRow}><Badge>{statusNames[item.status] ?? item.status}</Badge>{!!item.expiresAt && <Text style={s.expires}>Hạn thanh toán {dateTime(item.expiresAt)}</Text>}</View>
+      <Card><Title>Thông tin hành trình</Title><Row label="Ngày đi" value={date(item.startDate)} /><Row label="Ngày về" value={date(item.endDate)} /><Row label="Hành khách" value={item.passengerCount} /><Row label="Ngày đặt" value={dateTime(item.createdAt)} /></Card>
       <Card><Title>Thông tin liên hệ</Title><Row label="Họ và tên" value={item.contactName} /><Row label="Điện thoại" value={item.contactPhone} /><Row label="Email" value={item.contactEmail} />{!!item.note && <Copy>{item.note}</Copy>}</Card>
-      <Card><Title>Hành khách</Title>{item.passengers.map((passenger, index) => <View key={index} style={layout.gap}><Copy>{index + 1}. {passenger.fullName}</Copy><Copy muted>{date(passenger.dob)} · {ticketNames[passenger.type ?? 'ADULT'] ?? passenger.type} · {money(passenger.unitPrice)}</Copy></View>)}</Card>
-      <Card><Title>Chi phí đặt tour</Title><Row label="Tạm tính" value={money(item.subtotal)} /><Row label={`Giảm giá ${item.promotionCode ?? ''}`} value={`−${money(item.discount)}`} /><Row label="Tổng tiền" value={money(item.total)} strong />{payments.data && <><Row label="Đã nhận" value={money(payments.data.paidTotal)} /><Row label="Đã hoàn" value={money(payments.data.refundedTotal)} /><Row label="Còn phải trả" value={money(payments.data.outstanding)} /></>}<Button title="Thanh toán & chứng từ" onPress={() => router.push({ pathname: '/payment/[id]', params: { id } })} /></Card>
+      <Card><Title>Hành khách</Title>{item.passengers.map((passenger, index) => <View key={index} style={s.passenger}><Text style={s.passengerName}>{String(index + 1).padStart(2, '0')} · {passenger.fullName}</Text><Text style={s.passengerMeta}>{date(passenger.dob)} · {ticketNames[passenger.type ?? 'ADULT'] ?? passenger.type} · {money(passenger.unitPrice)}</Text></View>)}</Card>
+      <View style={s.cost}>
+        <Text style={s.costKicker}>Chi phí đặt tour</Text>
+        <Row label="Tạm tính" value={money(item.subtotal)} />
+        <Row label={`Giảm giá ${item.promotionCode ?? ''}`} value={`−${money(item.discount)}`} />
+        <View style={s.totalRow}><Text style={s.totalLabel}>Tổng tiền</Text><Text style={s.total}>{money(item.total)}</Text></View>
+        {payments.data && <><Row label="Đã nhận" value={money(payments.data.paidTotal)} /><Row label="Đã hoàn" value={money(payments.data.refundedTotal)} /><Row label="Còn phải trả" value={money(payments.data.outstanding)} /></>}
+        <Button title="Thanh toán & chứng từ" onPress={() => router.push({ pathname: '/payment/[id]', params: { id } })} />
+      </View>
       {item.invoice && <Card><Title>Hóa đơn {item.invoice.number}</Title><Copy muted>Phát hành: {dateTime(item.invoice.issuedAt)}</Copy><Button title="In hóa đơn" busy={busy} onPress={() => { void action(() => openInvoice(id, false)); }} /><Button title="Lưu / Chia sẻ PDF" outline busy={busy} onPress={() => { void action(() => openInvoice(id, true)); }} /></Card>}
       {['PENDING_PAYMENT', 'PENDING_CONFIRMATION', 'CONFIRMED'].includes(item.status) && <Card><Button title={cancelOpen ? 'Đóng yêu cầu hủy' : 'Yêu cầu hủy tour'} outline disabled={busy} onPress={() => setCancelOpen(value => !value)} />{cancelOpen && <><Field label="Lý do hủy" multiline value={reason} onChangeText={setReason} maxLength={1000} editable={!busy} /><Copy muted>Gửi yêu cầu không đồng nghĩa đã hủy hoặc đã hoàn tiền. Nhân viên sẽ xem xét theo chính sách.</Copy><Button title="Gửi yêu cầu hủy" danger busy={busy} onPress={cancel} /></>}</Card>}
       {item.cancelRequests?.map(request => <Card key={request.id}><Title>Yêu cầu hủy · {request.status === 'PENDING' ? 'Chờ xử lý' : request.status === 'APPROVED' ? 'Đã duyệt' : 'Đã từ chối'}</Title><Copy>{request.reason}</Copy><Row label="Phí hủy" value={money(request.feeAmount)} /><Row label="Hoàn theo chính sách" value={money(request.refundAmount)} />{!!request.rejectReason && <Copy>{request.rejectReason}</Copy>}</Card>)}
@@ -42,3 +53,16 @@ function BookingDetail({ id }: { id: string }) {
     </>}
   </Screen>;
 }
+
+const s = StyleSheet.create({
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  expires: { fontFamily: fonts.sans, fontSize: 11, letterSpacing: 0.6, color: palette.muted },
+  passenger: { gap: 3, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: palette.line },
+  passengerName: { fontFamily: fonts.serif, fontSize: 18, lineHeight: 24, color: palette.ink },
+  passengerMeta: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 19, color: palette.muted },
+  cost: { borderTopWidth: 2, borderTopColor: palette.ink, backgroundColor: palette.sand, padding: 20, gap: 12 },
+  costKicker: { fontFamily: fonts.sans, fontSize: 10, fontWeight: '600', letterSpacing: tracking.eyebrow, textTransform: 'uppercase', color: palette.accentDark },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: palette.lineStrong },
+  totalLabel: { fontFamily: fonts.sans, fontSize: 11, fontWeight: '600', letterSpacing: tracking.label, textTransform: 'uppercase', color: palette.muted },
+  total: { fontFamily: fonts.serif, fontSize: 30, color: palette.ink },
+});

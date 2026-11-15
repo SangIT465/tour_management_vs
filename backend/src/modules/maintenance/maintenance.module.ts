@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BookingModule } from '../booking/booking.module.js';
 import { PaymentModule } from '../payment/payment.module.js';
+import { PromotionModule } from '../promotion/promotion.module.js';
 import { ScheduleModule } from '../schedule/schedule.module.js';
 import { MaintenanceService } from './maintenance.service.js';
 
@@ -12,7 +13,7 @@ import { MaintenanceService } from './maintenance.service.js';
  * một lần ở `AppModule` để bật scheduler toàn cục.
  */
 @Module({
-  imports: [ScheduleModule, BookingModule, PaymentModule],
+  imports: [ScheduleModule, BookingModule, PaymentModule, PromotionModule],
   providers: [MaintenanceService],
 })
 export class MaintenanceModule { }

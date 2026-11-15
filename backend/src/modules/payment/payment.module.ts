@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BookingModule } from '../booking/booking.module.js';
 import { MailModule } from '../mail/mail.module.js';
+import { PromotionModule } from '../promotion/promotion.module.js';
 import { Booking } from '../booking/entities/booking.entity.js';
 import { CancelRequest } from '../booking/entities/cancel-request.entity.js';
 import { PaymentEvent } from './entities/payment-event.entity.js';
@@ -15,7 +16,9 @@ import { PAYMENT_GATEWAY } from './services/payment-gateway.interface.js';
 /**
  * Thanh toán + hoàn tiền (cổng giả lập).
  *
- * Phụ thuộc một chiều `BookingModule` (đọc booking, khóa dòng khi ghi nhận tiền).
+ * Phụ thuộc một chiều `BookingModule` (đọc booking, khóa dòng khi ghi nhận tiền)
+ * và `PromotionModule` (chốt sổ cái mã giảm giá: RESERVED → CONFIRMED khi tiền về).
+ * `PromotionModule` là module lá nên không tạo vòng phụ thuộc.
  *
  * Cổng thanh toán được cấp qua token `PAYMENT_GATEWAY`. Muốn dùng cổng thật
  * (VNPay/MoMo): viết class `implements PaymentGateway` rồi đổi `useClass` bên
@@ -26,6 +29,7 @@ import { PAYMENT_GATEWAY } from './services/payment-gateway.interface.js';
     TypeOrmModule.forFeature([Payment, PaymentEvent, Refund, Booking, CancelRequest]),
     BookingModule,
     MailModule,
+    PromotionModule,
   ],
   controllers: [PaymentController],
   providers: [

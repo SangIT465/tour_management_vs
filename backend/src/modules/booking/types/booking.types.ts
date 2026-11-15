@@ -101,4 +101,12 @@ export interface BookingQuote {
   promotionCode: string | null;
   availableSeats: number;
   canBook: boolean;
+  /**
+   * Lý do `canBook = false`, viết sẵn để client hiển thị.
+   *
+   * Trước đây client chỉ nhận `canBook: false` và phải tự đoán: hết chỗ, lịch
+   * chưa mở bán, hay đơn không có hành khách chiếm chỗ (toàn em bé dưới 2 tuổi).
+   * Ba nguyên nhân này cần ba cách xử lý khác nhau nên server trả luôn câu chữ.
+   */
+  blockedReason: string | null;
 }

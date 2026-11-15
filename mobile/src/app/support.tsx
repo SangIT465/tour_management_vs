@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
-import { Screen, Heading, Card, Title, Copy, Field, Button, Message, LoadState, LoginRequired, Badge, layout } from '../components/ui';
+import { StyleSheet, View } from 'react-native';
+import { Screen, Heading, Card, Title, Copy, Field, Button, Message, LoadState, LoginRequired, Badge, AppText as Text, layout } from '../components/ui';
 import { api } from '../lib/api';
 import { useResource } from '../hooks/use-resource';
+import { fonts, palette, tracking } from '../theme';
 import { dateTime } from '../lib/format';
 import type { Page } from '../lib/types';
 
@@ -26,6 +27,27 @@ function Support() {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Không gửi được yêu cầu.'); }
     finally { setBusy(false); }
   }
-  return <Screen refresh={resource.refresh} refreshing={resource.loading && !!resource.data}><Heading title="TourGo luôn sẵn sàng hỗ trợ" subtitle="Gửi câu hỏi về đơn đặt tour, thanh toán hoặc hành trình của bạn." /><Message text={error} error /><Message text={notice} /><Card><Title>Gửi yêu cầu mới</Title><Field label="Tiêu đề" value={subject} onChangeText={setSubject} maxLength={200} editable={!busy} /><Field label="Nội dung" multiline value={message} onChangeText={setMessage} maxLength={4000} editable={!busy} hint="Ghi kèm mã đơn nếu cần hỗ trợ một đơn đặt tour cụ thể." /><Button title="Gửi yêu cầu hỗ trợ" busy={busy} onPress={() => { void submit(); }} /></Card>
-    <Title>Lịch sử hỗ trợ</Title><LoadState loading={resource.loading && !resource.data} error={resource.error} retry={resource.refresh} empty={!resource.loading && !resource.error && !resource.data?.items.length ? 'Bạn chưa có yêu cầu hỗ trợ nào.' : undefined} />{resource.data?.items.map(ticket => <Card key={ticket.id}><Badge>{{ OPEN: 'Mới tiếp nhận', IN_PROGRESS: 'Đang xử lý', RESOLVED: 'Đã xử lý' }[ticket.status] ?? ticket.status}</Badge><Title>{ticket.subject}</Title><Copy>{ticket.message}</Copy><Copy muted>{dateTime(ticket.createdAt)}</Copy>{ticket.replies.map((entry, index) => <View key={index} style={layout.gap}><Copy>{entry.authorName}: {entry.message}</Copy><Copy muted>{dateTime(entry.createdAt)}</Copy></View>)}<Button title="Gửi phản hồi" small outline disabled={busy} onPress={() => { setReplyId(ticket.id); setReply(''); }} />{replyId === ticket.id && <><Field label="Phản hồi của bạn" multiline value={reply} onChangeText={setReply} maxLength={4000} editable={!busy} /><Button title="Gửi phản hồi" busy={busy} onPress={() => { void submit(ticket.id); }} /></>}</Card>)}{page > 1 && <Button title="Trang trước" outline onPress={() => setPage(value => value - 1)} />}{resource.data && page * 10 < resource.data.total && <Button title="Trang sau" outline onPress={() => setPage(value => value + 1)} />}</Screen>;
+  return <Screen refresh={resource.refresh} refreshing={resource.loading && !!resource.data}>
+    <Heading eyebrow="HỖ TRỢ · TOURGO" title="TourGo luôn sẵn sàng hỗ trợ" subtitle="Gửi câu hỏi về đơn đặt tour, thanh toán hoặc hành trình của bạn." />
+    <Message text={error} error /><Message text={notice} />
+    <Card><Title>Gửi yêu cầu mới</Title><Field label="Tiêu đề" value={subject} onChangeText={setSubject} maxLength={200} editable={!busy} /><Field label="Nội dung" multiline value={message} onChangeText={setMessage} maxLength={4000} editable={!busy} hint="Ghi kèm mã đơn nếu cần hỗ trợ một đơn đặt tour cụ thể." /><Button title="Gửi yêu cầu hỗ trợ" busy={busy} onPress={() => { void submit(); }} /></Card>
+    <Text style={s.historyTitle}>Lịch sử hỗ trợ</Text>
+    <LoadState loading={resource.loading && !resource.data} error={resource.error} retry={resource.refresh} empty={!resource.loading && !resource.error && !resource.data?.items.length ? 'Bạn chưa có yêu cầu hỗ trợ nào.' : undefined} />
+    {resource.data?.items.map(ticket => <Card key={ticket.id}>
+      <View style={layout.spread}><Badge>{{ OPEN: 'Mới tiếp nhận', IN_PROGRESS: 'Đang xử lý', RESOLVED: 'Đã xử lý' }[ticket.status] ?? ticket.status}</Badge><Text style={s.time}>{dateTime(ticket.createdAt)}</Text></View>
+      <Title>{ticket.subject}</Title>
+      <Copy>{ticket.message}</Copy>
+      {ticket.replies.map((entry, index) => <View key={index} style={s.reply}><Text style={s.replyAuthor}>{entry.authorName}</Text><Copy>{entry.message}</Copy><Text style={s.time}>{dateTime(entry.createdAt)}</Text></View>)}
+      <Button title="Gửi phản hồi" small outline disabled={busy} onPress={() => { setReplyId(ticket.id); setReply(''); }} />
+      {replyId === ticket.id && <><Field label="Phản hồi của bạn" multiline value={reply} onChangeText={setReply} maxLength={4000} editable={!busy} /><Button title="Gửi phản hồi" busy={busy} onPress={() => { void submit(ticket.id); }} /></>}
+    </Card>)}
+    {page > 1 && <Button title="Trang trước" outline onPress={() => setPage(value => value - 1)} />}{resource.data && page * 10 < resource.data.total && <Button title="Trang sau" outline onPress={() => setPage(value => value + 1)} />}
+  </Screen>;
 }
+
+const s = StyleSheet.create({
+  historyTitle: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 30, color: palette.ink, marginTop: 6 },
+  time: { fontFamily: fonts.sans, fontSize: 11, letterSpacing: 0.6, color: palette.muted },
+  reply: { gap: 4, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: palette.lineStrong },
+  replyAuthor: { fontFamily: fonts.sans, fontSize: 10, fontWeight: '600', letterSpacing: tracking.label, textTransform: 'uppercase', color: palette.accentDark },
+});

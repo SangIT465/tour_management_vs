@@ -10,7 +10,7 @@
 
 ## Giao diện nhân viên
 
-Giao diện xanh dương/trắng theo ảnh tham chiếu: sidebar sáng, thanh tìm kiếm booking, banner du lịch, ngày hiện tại theo múi giờ Việt Nam, bốn thẻ số liệu theo quyền, biểu đồ cột và vòng tròn, bảng booking gần đây, lịch khởi hành và thông báo. Không có header/footer khách hàng hoặc sidebar Admin. Không tạo số liệu công việc giả.
+Giao diện sáng, phẳng: sidebar trắng, thanh tìm kiếm booking, lời chào dạng chữ, ngày hiện tại theo múi giờ Việt Nam, bốn thẻ số liệu theo quyền, biểu đồ cột và vòng tròn, bảng booking gần đây, lịch khởi hành và thông báo. Không có header/footer khách hàng hoặc sidebar Admin. Không tạo số liệu công việc giả. Phong cách chi tiết xem mục "Phong cách chuyên nghiệp" ở cuối tài liệu.
 
 - Số tổng lấy từ `total` của API booking, khách hàng, yêu cầu hủy và lịch từ hôm nay; không gán phần trăm tăng trưởng giả.
 - Biểu đồ dựa trên tối đa 100 booking gần nhất và ghi rõ phạm vi, không phải báo cáo toàn hệ thống. Trạng thái xác nhận đơn không được gọi là đã thanh toán.
@@ -49,3 +49,11 @@ Trong chi tiết lịch, tài khoản có `schedule:write` chọn **Thêm / sử
 `npm test`, `npm run build`, `node scripts/verify-travel-ui.mjs` từ frontend. Browser fixture kiểm tra dashboard có dữ liệu, biểu đồ, tìm kiếm tiếng Việt, mở đúng chi tiết booking, tách shell, redirect STAFF/Admin, khách bị từ chối, menu theo quyền, tab cấu hình bị chặn, mobile 390px/320px. Không thay đổi tài khoản hoặc dữ liệu thật.
 
 Thông tin đăng nhập demo trong hướng dẫn cũ chưa được xác minh lại bằng đăng nhập thật trong lần sửa này.
+
+## Phong cách chuyên nghiệp cho khu vực nhân viên (`staff-pro.css`)
+
+- File `frontend/src/staff-pro.css` được nạp cuối cùng trong `main.jsx` (sau `admin-pro.css`), ghi đè `staff.css`, `records.css` và `editorial-*.css`. Mọi selector nằm trong `.staff-shell`, không ảnh hưởng khu vực khách hàng và Admin.
+- Dùng cùng bộ token với Admin (`--a-*`): một màu nhấn `#2f5bc7`, họ xám lạnh, viền 1px thay bóng, bo góc 10px/8px, chữ tối thiểu 12px. Khu vực Admin và Staff nhờ vậy có cùng ngôn ngữ thị giác.
+- Đã bỏ: ảnh banner chào mừng chồng lên thẻ số liệu, gradient, icon bốn màu (xanh/lục/cam/tím), banner hỗ trợ có ảnh nền, thẻ có đổ bóng, chữ 9–11px.
+- Layout: topbar sticky 60px, sidebar 248px, nội dung tối đa 1520px, tổng quan chia `1fr + 340px`; thu về 1 cột ở ≤1250px, cột phụ còn 2 cột rồi 1 cột ở ≤760px.
+- Giữ nguyên class và markup để `scripts/verify-travel-ui.mjs` và `frontend/tests` hoạt động.

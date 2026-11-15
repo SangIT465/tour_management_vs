@@ -120,6 +120,63 @@ export enum PromotionType {
   FIXED = 'FIXED',
 }
 
+/**
+ * Vòng đời chiến dịch khuyến mãi.
+ *
+ * `active` (boolean) cũ vẫn được giữ để tương thích dữ liệu và API cũ, nhưng
+ * `status` mới là nguồn sự thật: `ACTIVE` mới được áp mã. Bốn trạng thái còn lại
+ * giúp admin phân biệt "chưa muốn chạy" (DRAFT), "đã lên lịch" (SCHEDULED),
+ * "tạm dừng" (PAUSED) và "đã kết thúc" (EXPIRED) thay vì chỉ bật/tắt.
+ */
+export enum PromotionStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  EXPIRED = 'EXPIRED',
+}
+
+/** Nguồn gốc mã: công khai cho mọi khách, cấp riêng, hay quà tặng. */
+export enum PromotionKind {
+  PUBLIC = 'PUBLIC',
+  PERSONAL = 'PERSONAL',
+  GIFT = 'GIFT',
+}
+
+/** Phạm vi áp dụng của mã (một mã có thể có nhiều dòng phạm vi). */
+export enum PromotionScopeType {
+  TOUR = 'TOUR',
+  CATEGORY = 'CATEGORY',
+  DESTINATION = 'DESTINATION',
+  SCHEDULE = 'SCHEDULE',
+}
+
+/** Kênh bán được áp mã. */
+export enum PromotionChannelScope {
+  ALL = 'ALL',
+  ONLINE = 'ONLINE',
+  COUNTER = 'COUNTER',
+}
+
+/** Nhóm khách được áp mã. */
+export enum PromotionCustomerScope {
+  ALL = 'ALL',
+  NEW_CUSTOMER = 'NEW_CUSTOMER',
+}
+
+/**
+ * Trạng thái một lượt dùng mã trong sổ cái.
+ *
+ * - `RESERVED`: đơn đã tạo, đang giữ lượt (chưa thanh toán xong).
+ * - `CONFIRMED`: đã thanh toán, lượt dùng được tính chính thức.
+ * - `RELEASED`: đơn hủy/từ chối/hết hạn, lượt đã được trả lại.
+ */
+export enum PromotionRedemptionStatus {
+  RESERVED = 'RESERVED',
+  CONFIRMED = 'CONFIRMED',
+  RELEASED = 'RELEASED',
+}
+
 export enum AttendanceStatus {
   PRESENT = 'PRESENT',
   ABSENT = 'ABSENT',

@@ -4,7 +4,7 @@ import { ALL_ENTITIES } from '../common/entities/entity-list.js';
 import { Booking } from '../modules/booking/entities/booking.entity.js';
 import { CancelPolicy } from '../modules/catalog/entities/cancel-policy.entity.js';
 import { Promotion } from '../modules/promotion/entities/promotion.entity.js';
-import { BookingStatus, PromotionType } from '../common/enums/index.js';
+import { BookingStatus, PromotionStatus, PromotionType } from '../common/enums/index.js';
 
 /**
  * Smoke test cho tầng entity – **không** cần database, chỉ cần MySQL driver.
@@ -47,10 +47,11 @@ describe('Entity metadata (không cần DB)', () => {
   });
 
   it('nạp đủ entity, không entity nào thiếu metadata', () => {
-    // 36 class entity khai báo tường minh
-    expect(ALL_ENTITIES.length).toBe(38);
+    // 40 class entity khai báo tường minh (gồm 4 entity của chiến dịch mã giảm giá:
+    // PromotionScope, PromotionAssignment, PromotionRedemption, BookingDiscount)
+    expect(ALL_ENTITIES.length).toBe(42);
     // + 3 bảng nối do @JoinTable sinh ra: user_roles, role_permissions, tour_categories
-    expect(dataSource.entityMetadatas.length).toBe(41);
+    expect(dataSource.entityMetadatas.length).toBe(45);
 
     const tables = dataSource.entityMetadatas.map((m) => m.tableName);
     expect(tables).toEqual(
@@ -194,30 +195,53 @@ describe('CancelPolicy – tính phí hủy theo mốc ngày', () => {
 });
 
 describe('Promotion – tính giảm giá', () => {
+  /**
+   * `new Promotion()` không chạy default của DB, nên phải khai báo đủ cột mà
+   * `isUsable()` đọc. `status` là nguồn sự thật (thay cho `active` boolean cũ).
+   */
+  function promotion(overrides: Partial<Promotion> = {}): Promotion {
+    return Object.assign(new Promotion(), {
+      type: PromotionType.PERCENT,
+      value: 20,
+      maxDiscount: 300_000,
+      minOrder: 0,
+      usageLimit: null,
+      usedCount: 0,
+      active: true,
+      status: PromotionStatus.ACTIVE,
+      budgetCap: null,
+      budgetUsed: 0,
+      dailyLimit: null,
+      dailyUsed: 0,
+      dailyDate: null,
+      validFrom: new Date('2026-01-01T00:00:00Z'),
+      validTo: new Date('2027-01-01T00:00:00Z'),
+      ...overrides,
+    });
+  }
+
   it('20% của 20 triệu bị chặn bởi trần 300k', () => {
-    const p = new Promotion();
-    p.type = PromotionType.PERCENT;
-    p.value = 20;
-    p.maxDiscount = 300_000;
-    p.minOrder = 0;
-    p.usageLimit = null;
-    p.usedCount = 0;
-    p.active = true;
-    p.validFrom = new Date('2026-01-01T00:00:00Z');
-    p.validTo = new Date('2027-01-01T00:00:00Z');
+    const p = promotion();
     expect(p.calculateDiscount(20_000_000, new Date('2026-11-01T00:00:00Z'))).toBe(300_000);
   });
 
   it('hết lượt dùng thì không giảm', () => {
-    const p = new Promotion();
-    p.type = PromotionType.FIXED;
-    p.value = 500_000;
-    p.minOrder = 0;
-    p.usageLimit = 5;
-    p.usedCount = 5;
-    p.active = true;
-    p.validFrom = new Date('2026-01-01T00:00:00Z');
-    p.validTo = new Date('2027-01-01T00:00:00Z');
+    const p = promotion({ type: PromotionType.FIXED, value: 500_000, usageLimit: 5, usedCount: 5 });
     expect(p.calculateDiscount(1_000_000)).toBe(0);
+  });
+
+  it('mã đã tạm dừng (status khác ACTIVE) thì không giảm dù còn lượt', () => {
+    const p = promotion({ status: PromotionStatus.PAUSED });
+    expect(p.calculateDiscount(20_000_000, new Date('2026-11-01T00:00:00Z'))).toBe(0);
+  });
+
+  it('vượt trần ngân sách chiến dịch thì không giảm', () => {
+    const p = promotion({ budgetCap: 1_000_000, budgetUsed: 1_000_000 });
+    expect(p.calculateDiscount(20_000_000, new Date('2026-11-01T00:00:00Z'))).toBe(0);
+  });
+
+  it('vượt trần lượt trong ngày thì không giảm', () => {
+    const p = promotion({ dailyLimit: 10, dailyUsed: 10 });
+    expect(p.calculateDiscount(20_000_000, new Date('2026-11-01T00:00:00Z'))).toBe(0);
   });
 });

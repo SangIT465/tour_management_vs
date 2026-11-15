@@ -30,4 +30,26 @@
 @media(max-width:1000px) { .ao-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }.ao-welcome { align-items:flex-start; }.ao-date { display:none; }.tourgo-admin .admin-session { gap:12px; }.admin-profile > div { display:none; }.tourgo-admin .admin-session .admin-avatar { display:grid; }.ao-charts { grid-template-columns:minmax(0,1fr); }.ao-donut-layout { justify-content:center; }.ao-bottom-grid { grid-template-columns:minmax(0,1fr); }.ao-bottom-grid > :last-child { grid-column:auto; } }
 @media(max-width:760px) { .tourgo-admin { display:block; }.tourgo-admin .admin-sidebar { position:static; height:auto; padding:0 14px 10px; }.admin-logo { height:57px; }.tourgo-admin .admin-sidebar-heading { padding-top:0; }.tourgo-admin .admin-sidebar-heading > span { font-size:9px; }.tourgo-admin .admin-menu-toggle { display:flex; color:#426390; }.tourgo-admin .admin-topbar { padding:10px 14px; height:auto; min-height:58px; gap:10px; flex-wrap:wrap; }.admin-collapse-toggle { display:none; }.admin-search { flex-basis:100%; order:2; max-width:none; }.tourgo-admin .admin-session { width:100%; justify-content:flex-end; }.admin-profile > div { display:block; }.tourgo-admin .admin-content { padding:16px 12px; }.ao-welcome { margin:-16px -12px 0; padding:24px 14px 65px; }.ao-welcome h1 { font-size:25px; }.ao-welcome p { max-width:420px; font-size:12px; }.ao-metrics { gap:8px; }.ao-metric { padding:12px 10px; gap:9px; }.ao-metric h2 { font-size:10px!important; }.ao-metric strong { font-size:18px; }.ao-metric small { font-size:9px; }.ao-metric-icon { width:35px; height:43px; border-radius:9px; }.ao-metric-icon svg { width:23px; }.ao-card { padding:12px; }.ao-heading h2 { font-size:13px!important; }.ao-tour { width:100%; margin:0; }.ao-bars { gap:6px; }.ao-axis { width:42px; }.ao-bar-chart { height:200px; }.ao-bar-column small { font-size:9px; }.ao-donut-layout { gap:18px; }.admin-collapsed .admin-sidebar { display:block; } }
 @media(max-width:360px) { .ao-metric { flex-direction:column; align-items:flex-start; }.ao-metric strong { font-size:19px; }.ao-metrics { align-items:stretch; }.ao-heading { gap:5px; }.ao-heading h2 { gap:5px; }.ao-donut { width:130px; height:130px; }.ao-donut > div { width:85px; height:85px; } }
+.promotion-admin { margin-top:22px; padding:20px; }
+.promotion-admin .section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.promotion-admin .section-heading h3 { margin:0; font-size:15px; color:#12224d; }
+.promotion-admin .muted { font-size:11px; color:#7a8997; }
+.promotion-admin-select { display:block; max-width:420px; font-size:11px; color:#42608e; margin-bottom:14px; }
+.promotion-admin-select select { display:block; width:100%; margin-top:5px; min-height:38px; padding:8px 10px; font-size:12px; border:1px solid #dbe6f4; border-radius:7px; background:#fff; }
+.promotion-admin-tabs { display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid #e2ebf7; margin-bottom:16px; }
+.promotion-admin-tabs button { display:inline-flex; align-items:center; gap:6px; border:0; background:none; padding:10px 13px; font-size:12px; color:#8b99ae; border-bottom:2px solid transparent; }
+.promotion-admin-tabs button.active { color:#0068ff; border-bottom-color:#0068ff; }
+.promotion-admin-body { display:grid; gap:12px; }
+.promotion-admin-body label { display:block; font-size:11px; color:#42608e; }
+.promotion-admin-body input,.promotion-admin-body select,.promotion-admin-body textarea { display:block; width:100%; margin-top:5px; min-height:38px; padding:8px 10px; font-size:12px; border:1px solid #dbe6f4; border-radius:7px; background:#fff; }
+.promotion-scope-add { display:grid; grid-template-columns:180px minmax(0,1fr) auto; gap:10px; align-items:end; }
+.promotion-scope-add .btn { min-height:38px; }
+.promotion-scope-list { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.promotion-scope-list li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border:1px solid #e6edf7; border-radius:7px; background:#f8fbff; font-size:11px; color:#42608e; overflow-wrap:anywhere; }
+.promotion-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0; }
+.promotion-stats > div { padding:11px 13px; border:1px solid #e6edf7; border-radius:8px; background:#f8fbff; }
+.promotion-stats dt { font-size:10px; color:#7a8997; margin-bottom:4px; }
+.promotion-stats dd { margin:0; font-size:13px; font-weight:650; color:#12224d; overflow-wrap:anywhere; }
+@media(max-width:1000px) { .promotion-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:760px) { .promotion-scope-add { grid-template-columns:minmax(0,1fr); } .promotion-stats { grid-template-columns:minmax(0,1fr); } }
 @media print { .tourgo-admin { display:block; }.tourgo-admin .admin-sidebar,.tourgo-admin .admin-topbar { display:none; }.ao-welcome { background:none; margin:0; padding:10px; }.ao-metrics { margin:10px 0; }.ao-main-grid,.ao-charts,.ao-bottom-grid { display:block; }.ao-card { break-inside:avoid; margin-bottom:12px; } }

@@ -1,0 +1,151 @@
+/*
+ * Thành phần editorial dùng chung cho các trang còn lại của khu khách hàng:
+ * biểu mẫu ActionForm, hộp thoại ActionDialog, thông báo lỗi, phân trang, trích dẫn đánh giá,
+ * trang khôi phục mật khẩu. Nạp sau cùng để ghi đè records.css / workspace.css.
+ */
+
+/* ---------- ActionForm ---------- */
+.customer-site .action-form { gap: 22px; }
+.customer-site .action-form label { gap: 8px; color: #6f675c; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.customer-site .action-form input, .customer-site .action-form select, .customer-site .action-form textarea { padding: 13px 14px; border: 1px solid #e3dccf; border-radius: 0; background: #fff; color: #211d18; font-size: 15px; letter-spacing: 0; text-transform: none; }
+.customer-site .action-form textarea { min-height: 120px; line-height: 1.6; }
+.customer-site .action-form input:focus, .customer-site .action-form select:focus, .customer-site .action-form textarea:focus { outline: none; border-color: #a9693f; box-shadow: inset 0 -2px 0 #a9693f; }
+.customer-site .action-form small { color: #6f675c; font-size: 12px; letter-spacing: .02em; text-transform: none; line-height: 1.6; }
+.customer-site .action-form .btn { justify-self: start; min-height: 48px; padding: 0 30px; border: 1px solid #211d18; border-radius: 0; background: #211d18; color: #fff; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.customer-site .action-form .btn:hover { background: #a9693f; border-color: #a9693f; color: #fff; }
+.customer-site .action-form .btn:disabled { opacity: .55; }
+.customer-site .action-form .notice { margin: 0; font-size: 13px; letter-spacing: 0; text-transform: none; }
+
+/* ---------- Thông báo ---------- */
+.customer-site .notice { padding: 12px 16px; font-size: 14px; line-height: 1.6; }
+.customer-site .notice.error { background: #f1d9d3; border-color: #e6bfb6; color: #9a4a3b; }
+.customer-site .record-card .notice, .customer-site .panel .notice { margin: 14px 0; }
+
+/* ---------- Hộp thoại thao tác ---------- */
+.customer-site .record-dialog { width: min(760px, calc(100vw - 32px)); max-width: calc(100vw - 32px); border: 1px solid #211d18; border-radius: 0; background: #fbf8f3; color: #211d18; box-shadow: 0 30px 80px rgb(33 29 24 / .28); }
+.customer-site .record-dialog::backdrop { background: rgb(33 29 24 / .6); backdrop-filter: none; }
+.customer-site .record-dialog-heading { padding: 24px 32px; background: #fff; border-bottom: 1px solid #e3dccf; }
+.customer-site .record-dialog-heading span { color: #a9693f; font-size: 10px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
+.customer-site .record-dialog-heading h2 { margin: 8px 0 0; color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px !important; font-weight: 500; line-height: 1.1; letter-spacing: -.01em; }
+.customer-site .record-dialog-close { width: 40px; height: 40px; border: 1px solid #e3dccf; border-radius: 0; background: transparent; color: #211d18; transition: background .2s, color .2s, border-color .2s; }
+.customer-site .record-dialog-close:hover { background: #211d18; border-color: #211d18; color: #fff; }
+.customer-site .record-dialog-body { padding: 32px; }
+.customer-site .record-dialog-body > p { color: #6f675c; font-size: 14px; line-height: 1.75; }
+.customer-site .record-action:focus-visible, .customer-site .record-dialog-close:focus-visible { outline: 2px solid #a9693f; outline-offset: 3px; }
+
+/* ---------- Phân trang & trạng thái ---------- */
+.customer-site .pagination { gap: 20px; align-items: center; justify-content: center; margin: 40px 0 8px; }
+.customer-site .pagination span { color: #6f675c; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.customer-site .pagination button { min-height: 40px; padding: 0 18px; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; transition: background .2s, color .2s, border-color .2s; }
+.customer-site .pagination button:hover:not(:disabled) { background: #211d18; border-color: #211d18; color: #fff; }
+.customer-site .state.error { background: #f1d9d3; border-color: #e6bfb6; color: #9a4a3b; }
+.customer-site .state h2, .customer-site .state h3 { margin: 14px 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; }
+.customer-site .pre-line { white-space: pre-line; }
+
+/* ---------- Trích dẫn / đánh giá ---------- */
+.customer-site .panel blockquote, .customer-site .detail-layout blockquote { margin: 0 0 24px; padding: 2px 0 2px 24px; border: 0; border-left: 2px solid #a9693f; background: transparent; }
+.customer-site .panel blockquote strong { display: block; color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -.005em; }
+.customer-site .panel blockquote p { margin: 8px 0 0; color: #6f675c; font-size: 15px; line-height: 1.75; }
+.customer-site .record-thread { max-height: 320px; margin: 20px 0 24px; }
+.customer-site .record-thread blockquote { margin: 0 0 12px; padding: 14px 18px; border: 0; border-left: 2px solid #a9693f; border-radius: 0; background: #fff; font-size: 14px; }
+.customer-site .record-thread blockquote strong { display: inline; font-family: 'Jost', 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0; }
+.customer-site .record-thread blockquote p { margin: 6px 0 0; font-size: 14px; color: #211d18; }
+.customer-site .record-thread small { color: #6f675c; font-size: 11px; letter-spacing: .04em; }
+
+/* ---------- Khôi phục mật khẩu ---------- */
+.customer-site .container.section:has(> .recovery-panel) { padding-block: 96px 120px; }
+.customer-site .recovery-panel { max-width: 600px; margin: 0 auto; padding: 48px 44px 40px; border: 1px solid #e3dccf; border-top: 2px solid #211d18; background: #fff; }
+.customer-site .recovery-panel h1 { margin: 0 0 14px; font-size: clamp(38px, 5vw, 56px); line-height: 1; letter-spacing: -.025em; }
+.customer-site .recovery-panel > p { margin: 0 0 20px; color: #6f675c; font-size: 15px; line-height: 1.7; }
+.customer-site .recovery-panel .action-form { margin: 28px 0 24px; }
+.customer-site .recovery-panel .action-form .btn { width: 100%; justify-self: stretch; }
+.customer-site .recovery-panel p[role=status] { padding: 12px 16px; background: #dfe8d6; color: #4b6a38; font-size: 14px; }
+.customer-site .recovery-panel > p:last-child { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e3dccf; color: #6f675c; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.customer-site .recovery-panel a { color: #211d18; text-decoration: underline; text-underline-offset: 4px; }
+.customer-site .recovery-panel a:hover { color: #a9693f; }
+
+/* ---------- Hồ sơ cá nhân / Bảo mật ---------- */
+.customer-account-site .account-main > .container.section > .eyebrow { display: block; margin-bottom: 14px; }
+.customer-account-site .account-security-form { max-width: 640px; }
+.customer-account-site .account-security-form .panel { padding: 40px; border-top: 2px solid #211d18; }
+.customer-account-site .account-main .panel > h2 { margin: 0 0 8px; font-size: 30px; line-height: 1.1; }
+.customer-account-site .account-main .panel > p { color: #6f675c; font-size: 14px; line-height: 1.7; }
+.customer-account-site .account-main .panel > p:not(.notice):not(.muted) { margin: 0 0 24px; }
+.customer-account-site .account-main .panel > .muted { margin: 24px 0 0; padding-top: 18px; border-top: 1px solid #e3dccf; color: #6f675c; font-size: 13px; }
+.customer-account-site .account-main .workspace-columns { gap: 32px; }
+
+/* ---------- Hỗ trợ & Đánh giá của tôi ---------- */
+.customer-account-site .records-page > .eyebrow { display: block; margin-bottom: 14px; }
+.customer-account-site .records-page > .records-hint { margin: 0 0 28px; color: #6f675c; font-size: 14px; }
+.customer-account-site .records-toolbar { gap: 20px; padding: 20px 24px; margin: 0 0 32px; border: 1px solid #e3dccf; border-radius: 0; background: #efe8dc; }
+.customer-account-site .records-toolbar p { color: #6f675c; font-size: 14px; }
+.customer-account-site .records-page .record-card { margin: 0 0 20px; padding: 28px 32px; border: 1px solid #e3dccf; background: #fff; transition: border-color .25s; }
+.customer-account-site .records-page .record-card:hover { border-color: #211d18; }
+.customer-account-site .records-page .record-card h2 { margin: 16px 0 10px; line-height: 1.15; letter-spacing: -.01em; }
+.customer-account-site .record-card p { font-size: 14px; line-height: 1.7; }
+.customer-account-site .record-card .muted { font-size: 12px; letter-spacing: .06em; }
+.customer-account-site .record-inline-actions { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e3dccf; justify-content: space-between; gap: 14px; }
+.customer-account-site .records-hint { color: #6f675c; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.customer-account-site .record-action { min-height: 40px; padding: 0 18px; font-size: 11px; font-weight: 500; }
+.customer-account-site .record-card > .record-action { margin-top: 12px; }
+.customer-account-site .record-card > .record-action + .record-action { margin-left: 8px; }
+.customer-account-site .record-dialog .record-action.primary, .customer-account-site .records-toolbar .record-action.primary { background: #211d18; border-color: #211d18; color: #fff; }
+.customer-account-site .records-page > .panel { margin-bottom: 32px; padding: 32px; border-top: 2px solid #211d18; }
+.customer-account-site .records-page > .panel h2 { margin: 0 0 20px; font-size: 28px; }
+.customer-account-site .reviews-page > p:not(.notice):not(.records-hint) { max-width: 640px; }
+
+/* ---------- Tour yêu thích (TourCard dùng chung) ---------- */
+.customer-account-site .page-banner { padding: 0 0 28px; margin-bottom: 36px; border-bottom: 1px solid #211d18; background: transparent; }
+.customer-account-site .page-banner .container { width: 100%; max-width: none; padding: 0; }
+.customer-account-site .page-banner .eyebrow { display: block; margin-bottom: 14px; }
+.customer-account-site .page-banner h1 { margin: 0 0 14px; font-size: clamp(40px, 4.4vw, 64px); line-height: 1; letter-spacing: -.025em; }
+.customer-account-site .page-banner p { margin: 0; color: #6f675c; font-size: 15px; }
+.customer-account-site .account-main > section.container.section { width: 100%; padding: 0; }
+.customer-account-site .account-main .tour-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 28px; align-items: start; }
+.customer-account-site .account-main .tour-grid > div { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.customer-account-site .account-main .tour-grid > div > .tour-card { width: 100%; }
+.customer-account-site .account-main .tour-card { display: flex; flex-direction: column; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+.customer-account-site .account-main .tour-card:hover { box-shadow: none; }
+.customer-account-site .account-main .tour-image { display: block; height: auto; aspect-ratio: 4 / 5; border-radius: 2px; overflow: hidden; background: #efe8dc; }
+.customer-account-site .account-main .tour-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+.customer-account-site .account-main .tour-card:hover .tour-image img { transform: scale(1.05); }
+.customer-account-site .account-main .tour-badge { top: 16px; left: 16px; padding: 6px 10px; border-radius: 0; background: rgb(33 29 24 / .55); backdrop-filter: blur(6px); color: #fff; font-size: 10px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; }
+.customer-account-site .account-main .tour-duration { right: 16px; bottom: 16px; padding: 6px 10px; border-radius: 0; background: rgb(33 29 24 / .55); font-size: 11px; letter-spacing: .06em; }
+.customer-account-site .account-main .tour-body { flex: 1; padding: 20px 2px 0; }
+.customer-account-site .account-main .tour-location { margin-bottom: 10px; color: #6f675c; font-size: 12px; letter-spacing: .06em; }
+.customer-account-site .account-main .rating { padding: 0; border-radius: 0; background: transparent; color: #a9693f; font-weight: 500; }
+.customer-account-site .account-main .tour-body h3 { min-height: 0; margin: 0 0 10px; font-size: 26px; font-weight: 500; line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
+.customer-account-site .account-main .tour-body h3 a:hover { color: #a9693f; }
+.customer-account-site .account-main .tour-summary { min-height: 0; margin: 0 0 14px; color: #6f675c; font-size: 14px; line-height: 1.65; }
+.customer-account-site .account-main .tour-meta { color: #6f675c; font-size: 12px; }
+.customer-account-site .account-main .tour-bottom { align-items: flex-end; gap: 8px; margin-top: 0; padding-top: 14px; border-top: 1px solid #e3dccf; }
+.customer-account-site .account-main .tour-bottom small { display: block; color: #6f675c; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+.customer-account-site .account-main .tour-bottom strong { color: #211d18; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 500; letter-spacing: -.01em; }
+.customer-account-site .account-main .card-link { gap: 6px; padding: 0 0 4px; border-radius: 0; border-bottom: 1px solid #211d18; background: transparent; color: #211d18; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; box-shadow: none; }
+.customer-account-site .account-main .card-link:hover { background: transparent; border-color: #a9693f; color: #a9693f; }
+.customer-account-site .account-main .tour-grid .text-button { display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.customer-account-site .account-main .tour-grid .text-button svg { color: #a9693f; }
+.customer-account-site .account-main > section.container.section > .state { padding: 64px 24px; text-align: center; }
+.customer-account-site .account-main > section.container.section > .state svg { color: #a9693f; }
+.customer-account-site .account-main > section.container.section > .state .btn { margin-top: 18px; }
+
+@media (max-width: 1250px) {
+  .customer-account-site .account-main .tour-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-account-site .account-main .tour-image { aspect-ratio: 4 / 3; }
+}
+@media (max-width: 650px) {
+  .customer-account-site .account-security-form .panel { padding: 24px 20px; }
+  .customer-account-site .records-page .record-card, .customer-account-site .records-page > .panel { padding: 20px; }
+  .customer-account-site .records-toolbar { padding: 16px; }
+  .customer-account-site .page-banner h1 { font-size: 36px; }
+  .customer-account-site .account-main .tour-body h3 { font-size: 26px; }
+}
+@media (max-width: 650px) {
+  .customer-site .record-dialog-heading { padding: 18px 20px; }
+  .customer-site .record-dialog-heading h2 { font-size: 24px !important; }
+  .customer-site .record-dialog-body { padding: 20px; }
+  .customer-site .container.section:has(> .recovery-panel) { padding-block: 48px 72px; }
+  .customer-site .recovery-panel { padding: 32px 20px 28px; }
+  .customer-site .pagination { gap: 10px; }
+  .customer-site .pagination button { padding: 0 12px; }
+}

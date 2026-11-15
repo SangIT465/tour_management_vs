@@ -26,6 +26,7 @@ import { InvoiceService } from '../booking/services/invoice.service.js';
 import { renderInvoice } from '../booking/templates/invoice.template.js';
 import { MailOutboxService } from '../mail/mail-outbox.service.js';
 import { CancelRequest } from '../booking/entities/cancel-request.entity.js';
+import { PromotionService } from '../promotion/promotion.service.js';
 import type {
   CompleteRefundDto,
   CreatePaymentDto,
@@ -81,6 +82,7 @@ export class PaymentService {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly invoices: InvoiceService,
     private readonly mail: MailOutboxService,
+    private readonly promotions: PromotionService,
   ) { }
 
   // ===== truy vấn =====
@@ -773,6 +775,9 @@ export class PaymentService {
         await manager.save(Booking, closed);
       }
     }
+    // Chốt sổ cái mã giảm giá: RESERVED → CONFIRMED khi tiền đã về.
+    // Idempotent: gọi lại (IPN trùng) chỉ cập nhật 0 dòng.
+    await this.promotions.confirmRedemption(booking.id, manager);
     const invoice = await this.invoices.issue(booking.id, manager);
     await this.mail.enqueue(manager, {
       deduplicationKey: `payment-receipt:${payment.id}`,
