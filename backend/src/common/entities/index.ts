@@ -34,6 +34,10 @@ export * from '../../modules/supplier/entities/resource-assignment.entity.js';
 export * from '../../modules/supplier/entities/supplier.entity.js';
 
 // promotion
+export * from '../../modules/promotion/entities/booking-discount.entity.js';
+export * from '../../modules/promotion/entities/promotion-assignment.entity.js';
+export * from '../../modules/promotion/entities/promotion-redemption.entity.js';
+export * from '../../modules/promotion/entities/promotion-scope.entity.js';
 export * from '../../modules/promotion/entities/promotion.entity.js';
 
 // booking

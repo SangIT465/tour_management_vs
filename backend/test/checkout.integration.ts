@@ -179,6 +179,8 @@ describe('Checkout integration (MySQL)', () => {
   });
 
   it('atomically creates the paid invoice and one email, protects privacy, and retries delivery', async () => {
+    // Booking-created mail is queued separately from the payment receipt.
+    await app.get(MailOutboxService).processPending();
     const payment = await createPayment(paidBookingId);
     expect((await gateway(payment.gatewayTxnRef)).body.result).toBe('PROCESSED');
     const detail = await request(app.getHttpServer()).get(`/api/bookings/${paidBookingId}`).auth(token, { type: 'bearer' }).expect(200);
@@ -186,7 +188,7 @@ describe('Checkout integration (MySQL)', () => {
     expect(detail.body.invoice.snapshot).toMatchObject({ discount: 100_000, total: 900_000, payment: { method: 'VNPAY' } });
     expect(await source.getRepository(Invoice).countBy({ bookingId: paidBookingId })).toBe(1);
     await gateway(payment.gatewayTxnRef);
-    expect(await source.getRepository(MailMessage).count()).toBe(1);
+    expect(await source.getRepository(MailMessage).countBy({ deduplicationKey: `payment-receipt:${payment.id}` })).toBe(1);
     await request(app.getHttpServer()).get(`/api/bookings/${paidBookingId}/invoice/document`).expect(401);
     await request(app.getHttpServer()).get(`/api/bookings/${paidBookingId}/invoice/document`).auth(otherToken, { type: 'bearer' }).expect(403);
     const document = await request(app.getHttpServer()).get(`/api/bookings/${paidBookingId}/invoice/document`).auth(token, { type: 'bearer' }).expect(200);

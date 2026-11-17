@@ -88,7 +88,7 @@ describe('Versioned schema migrations (isolated MySQL)', () => {
       'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE()',
     );
     expect(tables.map((table) => table.name).sort()).toEqual(
-      [...INITIAL_TABLES, 'migrations'].sort(),
+      [...INITIAL_TABLES, 'migrations', 'promotion_scopes', 'promotion_assignments', 'promotion_redemptions', 'booking_discounts'].sort(),
     );
     const id = await marker(source);
     // MySQL normalizes JSON expression defaults; TypeORM may propose these two equivalent ALTERs.
@@ -178,7 +178,7 @@ describe('Versioned schema migrations (isolated MySQL)', () => {
     sources.push(upgraded);
     await upgraded.initialize();
     expect(await upgraded.runMigrations({ transaction: 'each' })).toHaveLength(
-      2,
+      ALL_MIGRATIONS.length - 1,
     );
     expect(await tableExists(upgraded, 'support_tickets')).toBe(true);
     expect(

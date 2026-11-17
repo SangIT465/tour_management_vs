@@ -19,6 +19,7 @@ import { PERMISSION_DEFINITIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS } from '../
 import { ALL_ENTITIES } from '../src/common/entities/entity-list.js';
 import { RoleName, UserStatus } from '../src/common/enums/index.js';
 import databaseConfig from '../src/config/database.config.js';
+import { EmailTemplate } from '../src/modules/system/entities/email-template.entity.js';
 import { Permission } from '../src/modules/users/entities/permission.entity.js';
 import { Role } from '../src/modules/users/entities/role.entity.js';
 import { User } from '../src/modules/users/entities/user.entity.js';
@@ -42,7 +43,7 @@ import { User } from '../src/modules/users/entities/user.entity.js';
         entities: ALL_ENTITIES,
       }),
     }),
-    TypeOrmModule.forFeature([User, Role, Permission]),
+    TypeOrmModule.forFeature([User, Role, Permission, EmailTemplate]),
   ],
 })
 class SeedModule { }
@@ -115,12 +116,79 @@ async function seedAdmin(dataSource: DataSource, roles: Map<string, Role>): Prom
   console.log(`Admin: đã tạo ${email} (mật khẩu lấy từ ADMIN_PASSWORD)`);
 }
 
+/**
+ * Mẫu email mặc định cho luồng đặt tour.
+ *
+ * Chỉ tạo khi mã chưa tồn tại – **không** ghi đè nội dung quản trị viên đã sửa.
+ * Biến dùng `{{tenBien}}` (escape HTML) và `{{{passengerList}}}` (HTML dựng sẵn);
+ * danh sách biến khả dụng xem `bookingMailVariables()` trong
+ * `src/modules/booking/templates/booking-mail.template.ts`.
+ */
+const EMAIL_TEMPLATES: { code: string; subject: string; bodyHtml: string }[] = [
+  {
+    code: 'BOOKING_CREATED',
+    subject: 'Đã ghi nhận đơn {{bookingCode}} – {{tourName}}',
+    bodyHtml: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172b38">
+<h1 style="font-size:22px;color:#086b77">Đơn đặt tour đã được ghi nhận</h1>
+<p>Xin chào <strong>{{contactName}}</strong>,</p>
+<p>TourGo đã ghi nhận đơn <strong>{{bookingCode}}</strong> của bạn.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0">
+<tr><td style="padding:6px 0;color:#586b78">Tour</td><td style="text-align:right">{{tourName}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Khởi hành</td><td style="text-align:right">{{startDate}} – {{endDate}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Điểm hẹn</td><td style="text-align:right">{{meetingPoint}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Số chỗ</td><td style="text-align:right">{{seatCount}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Tổng tiền</td><td style="text-align:right"><strong>{{total}}</strong></td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Trạng thái</td><td style="text-align:right">{{status}}</td></tr>
+</table>
+<h2 style="font-size:15px">Hành khách</h2>
+{{{passengerList}}}
+<p>Vui lòng hoàn tất thanh toán trước <strong>{{expiresAt}}</strong> để giữ chỗ.</p>
+<p style="color:#586b78;font-size:12px">Email gửi tự động tới {{contactEmail}}.</p>
+</div>`,
+  },
+  {
+    code: 'BOOKING_CONFIRMED',
+    subject: 'Đơn {{bookingCode}} đã được xác nhận – {{tourName}}',
+    bodyHtml: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172b38">
+<h1 style="font-size:22px;color:#086b77">Đơn đặt tour đã được xác nhận</h1>
+<p>Xin chào <strong>{{contactName}}</strong>,</p>
+<p>Đơn <strong>{{bookingCode}}</strong> của bạn đã được TourGo xác nhận. Vui lòng có mặt đúng giờ tại điểm hẹn.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0">
+<tr><td style="padding:6px 0;color:#586b78">Tour</td><td style="text-align:right">{{tourName}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Khởi hành</td><td style="text-align:right">{{startDate}} – {{endDate}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Điểm hẹn</td><td style="text-align:right">{{meetingPoint}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Số chỗ</td><td style="text-align:right">{{seatCount}}</td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Tổng tiền</td><td style="text-align:right"><strong>{{total}}</strong></td></tr>
+<tr><td style="padding:6px 0;color:#586b78">Xác nhận lúc</td><td style="text-align:right">{{confirmedAt}}</td></tr>
+</table>
+<h2 style="font-size:15px">Hành khách</h2>
+{{{passengerList}}}
+<p>Cảm ơn bạn đã tin tưởng TourGo. Chúc bạn có một chuyến đi thật vui vẻ!</p>
+<p style="color:#586b78;font-size:12px">Email gửi tự động tới {{contactEmail}}.</p>
+</div>`,
+  },
+];
+
+async function seedEmailTemplates(dataSource: DataSource): Promise<void> {
+  const repo = dataSource.getRepository(EmailTemplate);
+  for (const definition of EMAIL_TEMPLATES) {
+    const existing = await repo.findOne({ where: { code: definition.code } });
+    if (existing) {
+      console.log(`Mẫu email ${definition.code}: đã tồn tại – bỏ qua`);
+      continue;
+    }
+    await repo.save(repo.create({ ...definition, active: true }));
+    console.log(`Mẫu email ${definition.code}: đã tạo`);
+  }
+}
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.createApplicationContext(SeedModule, { logger: ['error', 'warn'] });
   try {
     const dataSource = app.get(DataSource);
     const roles = await seedRoles(dataSource);
     await seedAdmin(dataSource, roles);
+    await seedEmailTemplates(dataSource);
     if (process.env.STAFF_EMAIL && process.env.STAFF_PASSWORD) {
       const repo = dataSource.getRepository(User);
       const email = process.env.STAFF_EMAIL.trim().toLowerCase();

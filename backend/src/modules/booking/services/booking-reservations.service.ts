@@ -63,9 +63,14 @@ export class BookingReservationsService {
   async releasePromotion(
     manager: EntityManager,
     booking: Booking,
+    reason: string = booking.status,
   ): Promise<void> {
     if (!booking.promotionId) return;
-    await this.promotionService.releaseForBooking(booking.promotionId, manager);
+    await this.promotionService.releaseForBooking(booking.promotionId, manager, {
+      bookingId: booking.id,
+      discountAmount: booking.discount,
+      reason,
+    });
   }
 
   // ===== nội bộ: đọc dữ liệu =====

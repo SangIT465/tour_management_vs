@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BookingService } from '../booking/booking.service.js';
 import { PaymentService } from '../payment/payment.service.js';
+import { PromotionService } from '../promotion/promotion.service.js';
 import { ScheduleService } from '../schedule/schedule.service.js';
 
 /**
@@ -26,6 +27,7 @@ export class MaintenanceService {
     private readonly paymentService: PaymentService,
     private readonly bookingService: BookingService,
     private readonly scheduleService: ScheduleService,
+    private readonly promotionService: PromotionService,
   ) { }
 
   /** Mỗi 5 phút: dọn chỗ giữ, booking và giao dịch quá hạn. */
@@ -53,6 +55,19 @@ export class MaintenanceService {
     await this.runSafely('completeBookingsOfFinishedSchedules', () =>
       this.bookingService.completeBookingsOfFinishedSchedules(),
     );
+  }
+
+  /**
+   * Mỗi giờ: đóng các mã giảm giá đã quá `valid_to`.
+   *
+   * Vì sao cần: `Promotion.isUsable()` đã chặn theo thời gian, nhưng nếu không
+   * đổi `status` thì danh sách quản trị vẫn hiển thị mã "Đang bật" và bộ lọc
+   * `status = ACTIVE` vẫn trả về mã chết. Job này chỉ đổi trạng thái, **không**
+   * xóa dữ liệu và **không** đụng tới `used_count`/`budget_used` (sổ cái giữ nguyên).
+   */
+  @Cron(CronExpression.EVERY_HOUR, { name: 'expire-promotions' })
+  async expirePromotions(): Promise<void> {
+    await this.runSafely('expireOutdatedPromotions', () => this.promotionService.expireOutdated());
   }
 
   private async runSafely(label: string, job: () => Promise<number>): Promise<void> {

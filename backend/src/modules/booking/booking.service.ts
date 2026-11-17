@@ -44,6 +44,7 @@ import type {
 import { Booking } from './entities/booking.entity.js';
 import { CancelRequest } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
+import { BookingMailService } from './services/booking-mail.service.js';
 import { InvoiceService } from './services/invoice.service.js';
 import { renderInvoice } from './templates/invoice.template.js';
 import { Passenger } from './entities/passenger.entity.js';
@@ -79,6 +80,7 @@ export class BookingService {
     private readonly promotionService: PromotionService,
     private readonly events: EventEmitter2,
     private readonly invoices: InvoiceService,
+    private readonly bookingMail: BookingMailService,
   ) {}
 
   /**
@@ -237,12 +239,14 @@ export class BookingService {
     passengers: PassengerInputDto[],
     promotionCode?: string,
     customerId?: string,
+    channel: BookingChannel = BookingChannel.ONLINE,
   ): Promise<BookingQuote> {
     return this.pricing.quote(
       await this.reservations.loadScheduleOrFail(scheduleId),
       passengers,
       promotionCode,
       customerId,
+      channel,
     );
   }
 
@@ -272,9 +276,7 @@ export class BookingService {
   ): Promise<BookingDetailView> {
     const counter = options.asCounter === true;
     if (counter && !actor.permissions.includes('booking:read')) {
-      throw new ForbiddenException(
-        'Chỉ nhân viên được tạo đơn tại quầy cho khách hàng',
-      );
+      throw new ForbiddenException('Chỉ nhân viên được tạo đơn tại quầy cho khách hàng');
     }
     const customerId = await this.resolveCustomerId(dto, actor, counter);
     const schedule = await this.reservations.loadScheduleOrFail(dto.scheduleId);
@@ -282,92 +284,120 @@ export class BookingService {
     this.assertBookable(schedule);
     const priced = this.pricing.pricePassengers(schedule, dto.passengers);
     const seatCount = this.pricing.countSeats(priced);
-    if (seatCount < 1)
-      throw new BadRequestException('Booking phải có ít nhất 1 chỗ');
+    /**
+     * Chặn sớm bằng đúng câu chữ mà `POST /bookings/quote` đã trả về.
+     *
+     * Trước đây nhánh này chỉ kiểm `seatCount < 1` rồi để `holdSeats` ném 409 khi
+     * hết chỗ. Khách nhận hai thông báo khác nhau cho cùng một tình huống tuỳ vào
+     * việc họ bấm "Xem báo giá" hay "Xác nhận đặt tour".
+     *
+     * Khi client đã giữ chỗ trước (`holdId`), số chỗ của chính hold đó **đã bị trừ**
+     * khỏi `availableSeats`, nên kiểm sức chứa ở đây sẽ báo sai "không đủ chỗ".
+     * `consumeHold` bên trong transaction mới là nơi kiểm đúng.
+     */
+    const blockedReason = this.pricing.blockedReasonFor(
+      schedule,
+      seatCount,
+      dto.holdId ? 0 : await this.scheduleService.sumActiveHeldSeats(schedule.id),
+      { skipCapacity: Boolean(dto.holdId) },
+    );
+    if (blockedReason) throw new BadRequestException(blockedReason);
 
-    const id = await this.bookingRepo.manager.transaction(
-      'READ COMMITTED',
-      async (manager) => {
-        // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
-        const hold = dto.holdId
-          ? await this.consumeHold(dto.holdId, actor.id, seatCount, manager)
-          : await this.scheduleService.holdSeats(
-              schedule.id,
-              actor.id,
-              seatCount,
-              manager,
-            );
+    const id = await this.bookingRepo.manager.transaction('READ COMMITTED', async (manager) => {
+      // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
+      const hold = dto.holdId
+        ? await this.consumeHold(dto.holdId, actor.id, seatCount, manager)
+        : await this.scheduleService.holdSeats(schedule.id, actor.id, seatCount, manager);
 
-        // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
-        const promotion = dto.promotionCode
-          ? await this.promotionService.findUsableOrFail(
-              dto.promotionCode,
-              priced.subtotal,
-              manager,
-              customerId,
-            )
-          : null;
-        const booking = manager.create(Booking, {
-          code: await this.nextBookingCode(manager),
+      // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
+      const channel = dto.channel ?? (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE);
+      /**
+       * Kiểm tra mã bằng engine **trong** transaction: khóa dòng mã (pessimistic_write)
+       * rồi mới xét phạm vi/kênh/ngân sách/hạn mức ngày. Nhờ vậy hai request đồng
+       * thời không thể cùng vượt trần, và mã giới hạn theo tour không áp nhầm tour khác.
+       */
+      const evaluated = dto.promotionCode
+        ? await this.promotionService.evaluateForBooking({
+          code: dto.promotionCode,
+          subtotal: priced.subtotal,
           scheduleId: schedule.id,
           customerId,
-          createdBy: counter ? actor.id : null,
-          channel:
-            dto.channel ??
-            (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE),
-          contactName: dto.contactName.trim(),
-          contactPhone: dto.contactPhone.trim(),
-          contactEmail: dto.contactEmail.trim().toLowerCase(),
-          subtotal: priced.subtotal,
-          discount: 0,
-          total: priced.subtotal,
-          promotionId: promotion?.id ?? null,
-          status: BookingStatus.PENDING_PAYMENT,
-          // Khách trả tiền mặt tại quầy: không cần hạn thanh toán.
-          expiresAt: counter
-            ? null
-            : new Date(Date.now() + PAYMENT_TTL_MINUTES * 60_000),
-          holdId: hold.holdId,
-          seatCount,
-          note: dto.note?.trim() || null,
+          channel,
+          manager,
+        })
+        : null;
+      const promotion = evaluated?.promotion ?? null;
+      const booking = manager.create(Booking, {
+        code: await this.nextBookingCode(manager),
+        scheduleId: schedule.id,
+        customerId,
+        createdBy: counter ? actor.id : null,
+        channel,
+        contactName: dto.contactName.trim(),
+        contactPhone: dto.contactPhone.trim(),
+        contactEmail: dto.contactEmail.trim().toLowerCase(),
+        subtotal: priced.subtotal,
+        discount: 0,
+        total: priced.subtotal,
+        promotionId: promotion?.id ?? null,
+        status: BookingStatus.PENDING_PAYMENT,
+        // Khách trả tiền mặt tại quầy: không cần hạn thanh toán.
+        expiresAt: counter ? null : new Date(Date.now() + PAYMENT_TTL_MINUTES * 60_000),
+        holdId: hold.holdId,
+        seatCount,
+        note: dto.note?.trim() || null,
+      });
+      booking.passengers = priced.lines.map((line) =>
+        manager.create(Passenger, {
+          bookingId: booking.id,
+          fullName: line.fullName,
+          dob: line.dob,
+          gender: line.gender ?? null,
+          idNumber: line.idNumber ?? null,
+          type: line.type,
+          unitPrice: line.unitPrice,
+        }),
+      );
+      // `recalculateTotals` là nguồn sự thật cuối cùng của `subtotal/discount/total`.
+      // Dùng `evaluated.discount` (engine) chứ không tính lại: engine đã áp trần
+      // ngân sách và trần tổng giảm, tính lại sẽ lệch.
+      booking.recalculateTotals(evaluated?.discount ?? 0);
+
+      const saved = await manager.save(Booking, booking);
+
+      // Bước 3: nối hold với booking để job dọn chỗ tìm lại được.
+      await manager.update(SeatHold, { id: hold.holdId }, { bookingId: saved.id });
+
+      /**
+       * Giữ lượt + ghi sổ cái trong cùng transaction:
+       * - `reserveForBooking` tăng `used_count`/`budget_used`/`daily_used` bằng câu
+       *   UPDATE có điều kiện, nên hai request đồng thời không vượt trần.
+       * - Dòng `promotion_redemptions` (RESERVED) là nguồn sự thật để đếm hạn mức
+       *   mỗi khách và để đối chiếu về sau; `PaymentService` sẽ chốt thành CONFIRMED.
+       * - `booking_discounts` lưu chi tiết từng mã + số tiền, phục vụ báo cáo.
+       */
+      if (promotion && evaluated) {
+        await this.promotionService.reserveForBooking(promotion.id, manager, {
+          bookingId: saved.id,
+          customerId,
+          discountAmount: evaluated.discount,
+          subtotalAtUse: priced.subtotal,
         });
-        booking.passengers = priced.lines.map((line) =>
-          manager.create(Passenger, {
-            bookingId: booking.id,
-            fullName: line.fullName,
-            dob: line.dob,
-            gender: line.gender ?? null,
-            idNumber: line.idNumber ?? null,
-            type: line.type,
-            unitPrice: line.unitPrice,
-          }),
-        );
-        // `recalculateTotals` là nguồn sự thật cuối cùng của `subtotal/discount/total`.
-        booking.recalculateTotals(
-          promotion ? promotion.calculateDiscount(priced.subtotal) : 0,
-        );
+        await this.promotionService.recordBookingDiscounts(manager, saved.id, [
+          { promotion, discount: evaluated.discount },
+        ]);
+      }
 
-        const saved = await manager.save(Booking, booking);
+      // Email "đã ghi nhận đơn" nằm trong cùng transaction: rollback thì không có
+      // thư rác, commit thì worker gửi nền (xem BookingMailService).
+      await this.enqueueBookingMail(manager, saved, 'created', {
+        schedule,
+        passengers: saved.passengers ?? [],
+      });
 
-        // Bước 3: nối hold với booking để job dọn chỗ tìm lại được.
-        await manager.update(
-          SeatHold,
-          { id: hold.holdId },
-          { bookingId: saved.id },
-        );
-
-        // Tăng `usedCount` qua PromotionService: câu UPDATE có điều kiện
-        // `used_count < usage_limit` nên hai request đồng thời không vượt trần.
-        if (promotion) {
-          await this.promotionService.reserveForBooking(promotion.id, manager);
-        }
-
-        this.logger.log(
-          `Tạo booking ${saved.code} (${seatCount} chỗ) cho lịch ${schedule.id}`,
-        );
-        return saved.id;
-      },
-    );
+      this.logger.log(`Tạo booking ${saved.code} (${seatCount} chỗ) cho lịch ${schedule.id}`);
+      return saved.id;
+    });
 
     return this.getDetail(id, actor);
   }
@@ -393,49 +423,36 @@ export class BookingService {
    * `sold_seats` chỉ tăng ở đây (không tăng lúc tạo) để chỗ đang chờ thanh toán
    * không bị tính là đã bán.
    */
-  async confirm(
-    id: string,
-    actor: AuthenticatedUser,
-    dto: ConfirmBookingDto,
-  ): Promise<BookingDetailView> {
+  async confirm(id: string, actor: AuthenticatedUser, dto: ConfirmBookingDto): Promise<BookingDetailView> {
     // Trả về `booking` từ transaction thay vì gán qua closure: TypeScript không
     // theo dõi được phép gán trong callback nên sẽ thu hẹp kiểu sai (`never`).
-    const changed = await this.bookingRepo.manager.transaction(
-      async (manager) => {
-        const booking = await this.reservations.lockBooking(manager, id);
+    const changed = await this.bookingRepo.manager.transaction(async (manager) => {
+      const booking = await this.reservations.lockBooking(manager, id);
 
-        if (booking.status === BookingStatus.CONFIRMED) return null; // idempotent
-        booking.transitionTo(BookingStatus.CONFIRMED);
-        booking.confirmedBy = actor.id;
-        booking.confirmedAt = new Date();
-        booking.expiresAt = null;
-        if (dto.note !== undefined) booking.note = dto.note?.trim() || null;
+      if (booking.status === BookingStatus.CONFIRMED) return null; // idempotent
+      booking.transitionTo(BookingStatus.CONFIRMED);
+      booking.confirmedBy = actor.id;
+      booking.confirmedAt = new Date();
+      booking.expiresAt = null;
+      if (dto.note !== undefined) booking.note = dto.note?.trim() || null;
 
-        await manager.save(Booking, booking);
-        await manager.increment(
-          DepartureSchedule,
-          { id: booking.scheduleId },
-          'soldSeats',
-          booking.seatCount,
-        );
-        await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
-        return booking;
-      },
-    );
+      await manager.save(Booking, booking);
+      await manager.increment(DepartureSchedule, { id: booking.scheduleId }, 'soldSeats', booking.seatCount);
+      await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
+
+      // Chỉ xếp thư khi trạng thái thực sự đổi; nhánh idempotent đã return sớm.
+      await this.enqueueBookingMail(manager, booking, 'confirmed');
+
+      return booking;
+    });
 
     // Chỉ phát sự kiện khi trạng thái thực sự đổi (bỏ qua lần gọi idempotent).
     if (changed) {
-      await this.emitBookingEvent(
-        DomainEvents.BOOKING_CONFIRMED,
-        DomainEvents.BOOKING_CONFIRMED,
-        changed,
-        actor,
-        {
-          title: `Đơn ${changed.code} đã được xác nhận`,
-          body: 'Đơn đặt tour của bạn đã được xác nhận. Vui lòng kiểm tra thông tin trong chi tiết đơn.',
-          before: { status: BookingStatus.PENDING_CONFIRMATION },
-        },
-      );
+      await this.emitBookingEvent(DomainEvents.BOOKING_CONFIRMED, DomainEvents.BOOKING_CONFIRMED, changed, actor, {
+        title: `Đơn ${changed.code} đã được xác nhận`,
+        body: 'Đơn đặt tour của bạn đã được xác nhận. Vui lòng kiểm tra thông tin trong chi tiết đơn.',
+        before: { status: BookingStatus.PENDING_CONFIRMATION },
+      });
     }
 
     return this.getDetail(id, actor);
@@ -713,6 +730,21 @@ export class BookingService {
     booking.statusBeforeCancel = null;
     booking.expiresAt = null;
     booking.note = `${booking.note ? `${booking.note}\n` : ''}Hủy: ${reason.trim()}`;
+  }
+
+  private async enqueueBookingMail(
+    manager: EntityManager,
+    booking: Booking,
+    event: 'created' | 'confirmed',
+    preloaded: { schedule?: DepartureSchedule; passengers?: Passenger[] } = {},
+  ): Promise<void> {
+    try {
+      await this.bookingMail.enqueue(manager, booking, event, preloaded);
+    } catch (error) {
+      this.logger.warn(
+        `Không xếp được email "${event}" cho đơn ${booking.code}: ${(error as Error).message}`,
+      );
+    }
   }
 
   private async loadFull(id: string): Promise<Booking> {

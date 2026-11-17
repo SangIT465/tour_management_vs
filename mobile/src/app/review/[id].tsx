@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Screen, Heading, Card, Title, Copy, Field, Button, Chips, Message, LoadState, LoginRequired } from '../../components/ui';
+import { Screen, Heading, Card, Title, Copy, Field, Button, Chips, Message, LoadState, LoginRequired, AppText as Text } from '../../components/ui';
 import { useResource } from '../../hooks/use-resource';
 import { api } from '../../lib/api';
+import { fonts, palette, tracking } from '../../theme';
 import type { Booking, Page } from '../../lib/types';
 
 export default function ReviewScreen() { const { id } = useLocalSearchParams<{ id: string }>(); return <LoginRequired next={`/review/${id}`}><Review id={id} /></LoginRequired>; }
@@ -22,5 +24,26 @@ function Review({ id }: { id: string }) {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Không gửi được đánh giá.'); }
     finally { setBusy(false); }
   }
-  return <Screen><Heading title="Chia sẻ trải nghiệm của bạn" subtitle={booking.data?.tourName} /><LoadState loading={booking.loading || reviews.loading} error={booking.error || reviews.error} retry={() => { booking.refresh(); reviews.refresh(); }} /><Message text={error} error /><Message text={notice} />{booking.data?.status !== 'COMPLETED' ? <Message text="Bạn có thể đánh giá sau khi chuyến đi hoàn thành." /> : existing ? <Card><Title>Đánh giá đã gửi · {existing.rating} sao</Title><Copy>{existing.comment || 'Không có nhận xét bổ sung.'}</Copy><Copy muted>{{ PENDING: 'Đang chờ duyệt', VISIBLE: 'Đã công khai', HIDDEN: 'Đã ẩn' }[existing.status] ?? existing.status}</Copy></Card> : !reviews.loading && !reviews.error && <Card><Title>Bạn hài lòng thế nào?</Title><Chips items={[1, 2, 3, 4, 5].map(value => ({ label: `${value} ★`, value: String(value) }))} value={rating} onChange={setRating} /><Field label="Nhận xét chuyến đi (tùy chọn)" value={comment} onChangeText={setComment} multiline maxLength={2000} editable={!busy} /><Button title="Gửi đánh giá" busy={busy} onPress={() => { void submit(); }} /></Card>}<Button title="Về đơn đặt tour" outline onPress={() => router.replace({ pathname: '/bookings/[id]', params: { id } })} /></Screen>;
+  return <Screen>
+    <Heading eyebrow="ĐÁNH GIÁ · TOURGO" title="Chia sẻ trải nghiệm của bạn" subtitle={booking.data?.tourName} />
+    <LoadState loading={booking.loading || reviews.loading} error={booking.error || reviews.error} retry={() => { booking.refresh(); reviews.refresh(); }} />
+    <Message text={error} error /><Message text={notice} />
+    {booking.data?.status !== 'COMPLETED' ? <Message text="Bạn có thể đánh giá sau khi chuyến đi hoàn thành." /> : existing ? <Card>
+      <Text style={s.stars}>{'★'.repeat(existing.rating)}{'☆'.repeat(Math.max(0, 5 - existing.rating))}</Text>
+      <Title>Đánh giá đã gửi · {existing.rating} sao</Title>
+      <Copy>{existing.comment || 'Không có nhận xét bổ sung.'}</Copy>
+      <Text style={s.statusLabel}>{{ PENDING: 'Đang chờ duyệt', VISIBLE: 'Đã công khai', HIDDEN: 'Đã ẩn' }[existing.status] ?? existing.status}</Text>
+    </Card> : !reviews.loading && !reviews.error && <Card>
+      <Title>Bạn hài lòng thế nào?</Title>
+      <Chips items={[1, 2, 3, 4, 5].map(value => ({ label: `${value} ★`, value: String(value) }))} value={rating} onChange={setRating} />
+      <Field label="Nhận xét chuyến đi (tùy chọn)" value={comment} onChangeText={setComment} multiline maxLength={2000} editable={!busy} />
+      <Button title="Gửi đánh giá" busy={busy} onPress={() => { void submit(); }} />
+    </Card>}
+    <Button title="Về đơn đặt tour" outline onPress={() => router.replace({ pathname: '/bookings/[id]', params: { id } })} />
+  </Screen>;
 }
+
+const s = StyleSheet.create({
+  stars: { fontFamily: fonts.serif, fontSize: 26, letterSpacing: 4, color: palette.accentDark },
+  statusLabel: { fontFamily: fonts.sans, fontSize: 10, fontWeight: '600', letterSpacing: tracking.label, textTransform: 'uppercase', color: palette.muted },
+});

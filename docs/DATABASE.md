@@ -28,6 +28,7 @@ Danh sách migration duy nhất nằm tại
 | `InitialSchema1794000000000` | Tạo 41 bảng và các khóa/index từ snapshot SQL cố định trên database trống; nhận diện schema đầy đủ đã tạo bằng cách cũ |
 | `PaymentReceipts1794099600000` | Bổ sung hàng đợi email và index tra cứu lượt dùng mã giảm giá |
 | `SupportTickets1794180000000` | Bổ sung bảng hỗ trợ, thay cho SQL chạy thủ công trước đây |
+| `PromotionCampaigns1794186000000` | Bổ sung chiến dịch khuyến mãi, phạm vi áp dụng, cấp voucher và sổ cái lượt dùng |
 
 Baseline dùng `initial-schema.snapshot.ts` cố định; không gọi `synchronize()` hay
 đọc entity hiện tại để tự sinh lệnh thay đổi schema trong lúc migrate.

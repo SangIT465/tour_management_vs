@@ -66,7 +66,7 @@ try {
   await navigate('/');
   await waitFor(() => evaluate('document.querySelectorAll(".tour-card").length > 0'), 'live tour cards');
   assert.equal(await evaluate('document.querySelectorAll(".destination-card").length'), 6);
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".home-hero h1 em")).fontStyle'), 'normal');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".home-hero h1 em")).fontStyle'), 'italic');
   assert.equal(await evaluate('document.querySelectorAll(".home-benefits > div").length'), 5);
   await waitFor(() => evaluate('[...document.querySelectorAll(".destination-card img")].every(img => img.complete && img.naturalWidth > 0)'), 'destination images');
   await noOverflow('Desktop home');
@@ -191,7 +191,8 @@ try {
     '/api/tours/ui-tour': { id: 'ui-tour', name: fixtureBooking.tourName, departureCity: 'Đà Nẵng', durationDays: 3, durationNights: 2, avgRating: 4.8, reviewCount: 12, images: [{ id: 'im1', url: '/images/hoi-an.jpg', isCover: true }, { id: 'im2', url: '/images/ha-long.jpg' }], destinations: [{ name: 'Đà Nẵng' }, { name: 'Hội An' }], itinerary: [{ id: 'd1', dayNo: 1, title: 'Khám phá thành phố', content: 'Lịch trình kiểm thử giao diện.' }], cancelPolicy: { name: 'Chính sách thử nghiệm', rules: [{ daysBefore: 7, feePercent: 20 }] } },
     '/api/payments/booking/ui-booking': { paidTotal: 2500000, outstanding: 0, refundedTotal: 0, payments: [{ id: 'pay1', method: 'BANK_TRANSFER', status: 'SUCCESS', amount: 2500000 }] },
   };
-  const fixtureScript = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+  const fixtureScript = await send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `
     sessionStorage.setItem('vivu-session', JSON.stringify({accessToken:'ui-test-not-a-real-token'}));
     const fixtureRoutes = ${JSON.stringify(fixtureRoutes)};
     const realFetch = window.fetch.bind(window);
@@ -351,7 +352,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await evaluate('scrollTo(0,0)');
   await pause(700);
-  const checkoutShot = await send('Page.captureScreenshot', { format:'png', captureBeyondViewport:false });
+  const checkoutShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(tmpdir(), 'tourgo-checkout-desktop.png'), Buffer.from(checkoutShot.data, 'base64'));
   await evaluate('document.querySelector(".checkout-submit").click()');
   await waitFor(() => evaluate('!!document.querySelector(".checkout-success")'), 'checkout success');
@@ -369,10 +370,10 @@ try {
   assert.equal(await evaluate('document.querySelector(".success-actions .outline").getAttribute("href")'), '#/bookings/ui-created-booking');
   await noOverflow('Booking success desktop');
   await pause(700);
-  const successShot = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:false});
+  const successShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(tmpdir(), 'tourgo-booking-success-desktop.png'), Buffer.from(successShot.data, 'base64'));
   for (const width of [390, 320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width, height:844, deviceScaleFactor:1, mobile:true});
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
     await noOverflow(`Booking success ${width}px`);
   }
   console.log('PASS booking success: API code/total, focus, next steps, payment/detail links and responsive layout');
@@ -389,7 +390,7 @@ try {
   await evaluate('document.querySelector(".payment-create").click()');
   await waitFor(() => evaluate('!!document.querySelector(".payment-proof-form")'), 'transfer proof form');
   const paymentCreatePost = await evaluate('window.fixturePosts.find(p => p.path === "/api/payments").body');
-  assert.deepEqual(paymentCreatePost, {bookingId:'ui-booking', method:'BANK_TRANSFER'});
+  assert.deepEqual(paymentCreatePost, { bookingId: 'ui-booking', method: 'BANK_TRANSFER' });
   await evaluate('document.querySelector(".payment-proof-form input").value="https://example.test/proof.jpg"; document.querySelector(".payment-proof-form textarea").value="Chứng từ kiểm thử"; document.querySelector(".payment-proof-form").requestSubmit()');
   await waitFor(() => evaluate('!!document.querySelector(".payment-review-note")'), 'proof awaiting review');
   assert.ok(await evaluate('document.querySelector(".payment-sidebar .checkout-total").textContent.includes("2.500.000")'));
@@ -398,13 +399,13 @@ try {
   await evaluate('document.querySelector(".payment-create").click()');
   await waitFor(() => evaluate('!!document.querySelector(".payment-simulate")'), 'mock payment');
   for (const width of [390, 320]) {
-    await send('Emulation.setDeviceMetricsOverride', { width, height:844, deviceScaleFactor:1, mobile:true });
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
     await noOverflow(`Payment ${width}px`);
   }
-  await send('Emulation.setDeviceMetricsOverride', { width:1440, height:1000, deviceScaleFactor:1, mobile:false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await evaluate('scrollTo(0,0)');
   await pause(600);
-  const paymentShot = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:false});
+  const paymentShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(tmpdir(), 'tourgo-payment-desktop.png'), Buffer.from(paymentShot.data, 'base64'));
   await evaluate('window.confirm = () => false; document.querySelector(".payment-simulate").click()');
   assert.equal(await evaluate('window.paymentFixture.outstanding'), 2500000);
@@ -440,7 +441,7 @@ try {
   assert.equal(await evaluate('[...document.querySelectorAll(".staff-shell a")].some(a => a.getAttribute("href").startsWith("#/admin"))'), false);
   await noOverflow('Staff desktop');
   await pause(500);
-  const staffShot = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:false});
+  const staffShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(tmpdir(), 'tourgo-staff-desktop.png'), Buffer.from(staffShot.data, 'base64'));
   await navigate('/staff?tab=bookings');
   await waitFor(() => evaluate('!!document.querySelector(".staff-shell .admin-toolbar")'), 'staff bookings');
@@ -460,7 +461,7 @@ try {
   await noOverflow('Staff booking desktop');
   await evaluate('document.querySelector(".ops-filters input[name=fromDate]").value="2026-11-01"; document.querySelector(".ops-filters input[name=toDate]").value="2026-11-30"; document.querySelector(".ops-filters").requestSubmit()');
   await waitFor(() => evaluate('window.staffOps.lastBookingQuery.includes("fromDate=2026-11-01")'), 'booking date filter');
-  for (const decision of [false,true]) {
+  for (const decision of [false, true]) {
     await evaluate(`window.staffOps.booking.status='CANCEL_REQUESTED'; window.staffOps.booking.cancelRequests=[{id:'cr1',status:'PENDING',reason:'Khách có việc đột xuất',feeAmount:100000,feePercent:4,refundAmount:2400000,createdAt:'2026-10-28'}]; document.querySelector('.ops-heading-actions button').click();`);
     await waitFor(() => evaluate('[...document.querySelectorAll(".ops-processing button")].some(b => b.textContent === "Duyệt yêu cầu hủy")'), 'cancel approval buttons');
     await evaluate(`[...document.querySelectorAll('.ops-processing button')].find(b => b.textContent === '${decision ? 'Duyệt yêu cầu hủy' : 'Từ chối yêu cầu hủy'}').click()`);
@@ -472,7 +473,7 @@ try {
     }
     await evaluate('document.querySelector(".ops-action-form").requestSubmit()');
     await waitFor(() => evaluate(`document.querySelector('.ops-detail-summary .ops-badge')?.classList.contains('${decision ? 'cancelled' : 'confirmed'}')`), 'cancel decision refresh');
-    assert.deepEqual(await evaluate('window.staffOps.requests.at(-1).body'), decision ? {approve:true} : {approve:false,rejectReason:'Không đủ điều kiện hủy'});
+    assert.deepEqual(await evaluate('window.staffOps.requests.at(-1).body'), decision ? { approve: true } : { approve: false, rejectReason: 'Không đủ điều kiện hủy' });
   }
   await evaluate('window.staffOps.booking.status="PENDING_CONFIRMATION"; window.staffOps.booking.cancelRequests=[]; document.querySelector(".ops-heading-actions button").click()');
   await waitFor(() => evaluate('[...document.querySelectorAll(".ops-processing button")].some(b => b.textContent === "Xác nhận đơn")'), 'confirmation action');
@@ -489,19 +490,19 @@ try {
   assert.ok(await evaluate('document.querySelector(".ops-schedule-bookings").textContent.includes("BK-UI-TEST")'));
   await evaluate('document.querySelector(".ops-schedule-bookings .ops-view").click()');
   await waitFor(() => evaluate('!!document.querySelector(".ops-detail-summary")'), 'departure booking link back');
-  for (const width of [390,320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
     await noOverflow(`Staff bookings detail ${width}px`);
   }
-  await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1000,deviceScaleFactor:1,mobile:false});
-  await writeFile(join(tmpdir(),'tourgo-staff-bookings.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false})).data,'base64'));
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+  await writeFile(join(tmpdir(), 'tourgo-staff-bookings.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })).data, 'base64'));
   await navigate('/staff?tab=schedules');
   await waitFor(() => evaluate('!!document.querySelector(".ops-schedules .ops-view")'), 'staff schedules list');
-  assert.equal(await evaluate('[...document.querySelectorAll(".ops-schedules button")].some(b => /Thêm lịch|Chỉnh sửa lịch|Xóa lịch/.test(b.textContent))'),false);
+  assert.equal(await evaluate('[...document.querySelectorAll(".ops-schedules button")].some(b => /Thêm lịch|Chỉnh sửa lịch|Xóa lịch/.test(b.textContent))'), false);
   await evaluate('document.querySelector(".ops-schedules .ops-view").click()');
   await waitFor(() => evaluate('document.querySelector(".ops-checkpoints")?.textContent.includes("07:30")'), 'schedule checkpoints');
   assert.ok(await evaluate('document.querySelector(".ops-detail").textContent.includes("Sân bay Đà Nẵng")'));
-  assert.equal(await evaluate('!!document.querySelector(".ops-pickup-editor button")'),false);
+  assert.equal(await evaluate('!!document.querySelector(".ops-pickup-editor button")'), false);
   await evaluate('window.fixtureUser.permissions.push("schedule:write"); window.dispatchEvent(new Event("auth-change"))');
   await waitFor(() => evaluate('!!document.querySelector(".ops-pickup-editor button")'), 'pickup write permission');
   await evaluate('document.querySelector(".ops-pickup-editor button").click()');
@@ -509,36 +510,36 @@ try {
   await evaluate('setReactInput(document.querySelector(".ops-pickup-editor input[name=meetingPoint]"),"Sân bay – Cột 12"); [...document.querySelectorAll(".ops-pickup-editor button")].find(b=>b.textContent.includes("+ Thêm điểm đón")).click()');
   await waitFor(() => evaluate('document.querySelectorAll(".ops-pickup-row").length===2'), 'pickup row added');
   await evaluate('setReactInput(document.querySelectorAll(".ops-pickup-row")[1].querySelectorAll("input")[2],"Khách sạn trung tâm")');
-  await send('Emulation.setDeviceMetricsOverride', {width:320,height:844,deviceScaleFactor:1,mobile:true});
+  await send('Emulation.setDeviceMetricsOverride', { width: 320, height: 844, deviceScaleFactor: 1, mobile: true });
   await noOverflow('Pickup editor 320px');
-  await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await evaluate('document.querySelector(".ops-pickup-editor form").requestSubmit()');
   await waitFor(() => evaluate('window.staffOps.pickupBody?.checkpoints.length===2 && document.querySelectorAll(".ops-checkpoints li").length===2'), 'pickup persisted and refreshed');
-  assert.equal(await evaluate('window.staffOps.pickupBody.meetingPoint'),'Sân bay – Cột 12');
-  assert.equal(await evaluate('window.staffOps.pickupBody.checkpoints[1].name'),'Khách sạn trung tâm');
-  assert.equal(await evaluate('"id" in window.staffOps.pickupBody.checkpoints[0]'),false);
+  assert.equal(await evaluate('window.staffOps.pickupBody.meetingPoint'), 'Sân bay – Cột 12');
+  assert.equal(await evaluate('window.staffOps.pickupBody.checkpoints[1].name'), 'Khách sạn trung tâm');
+  assert.equal(await evaluate('"id" in window.staffOps.pickupBody.checkpoints[0]'), false);
   await evaluate('window.fixtureUser.permissions=window.fixtureUser.permissions.filter(p=>p!=="schedule:write"); window.dispatchEvent(new Event("auth-change"))');
   await evaluate('document.querySelector(".ops-filters input[name=fromDate]").value="2026-12-01"; document.querySelector(".ops-filters input[name=toDate]").value="2026-11-01"; document.querySelector(".ops-filters").requestSubmit()');
   await waitFor(() => evaluate('!!document.querySelector(".ops-schedules [role=alert]")'), 'inverted schedule dates rejected');
   await evaluate('document.querySelector(".ops-filters input[name=toDate]").value="2026-12-31"; document.querySelector(".ops-filters").requestSubmit()');
   await waitFor(() => evaluate('window.staffOps.lastScheduleQuery.includes("toDate=2026-12-31")'), 'schedule filters sent');
   await noOverflow('Staff schedules desktop');
-  await writeFile(join(tmpdir(),'tourgo-staff-schedules.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false})).data,'base64'));
-  for (const width of [390,320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
+  await writeFile(join(tmpdir(), 'tourgo-staff-schedules.png'), Buffer.from((await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })).data, 'base64'));
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
     await noOverflow(`Staff schedules detail ${width}px`);
   }
   await evaluate(`window.fixtureUser.permissions=window.fixtureUser.permissions.filter(p=>!['booking:confirm','booking:cancel'].includes(p)); window.dispatchEvent(new Event('auth-change'));`);
   await navigate('/staff?tab=bookings&booking=ui-booking');
   await waitFor(() => evaluate('!!document.querySelector(".ops-detail-summary")'), 'read only booking detail');
-  assert.equal(await evaluate('!!document.querySelector(".ops-processing")'),false);
+  assert.equal(await evaluate('!!document.querySelector(".ops-processing")'), false);
   await evaluate('delete window.staffOps');
   console.log('PASS staff operations: date filters, booking detail, confirm, approve/reject cancellation with strict booleans, validation errors, schedule checkpoints, readonly permissions and responsive tables; no real mutations');
   await navigate('/staff?tab=settings');
   await waitFor(() => evaluate('!!document.querySelector(".staff-content [role=alert]")'), 'staff admin tab denied');
   await navigate('/staff');
-  for (const width of [390,320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
     await noOverflow(`Staff ${width}px`);
     await evaluate('document.querySelector(".staff-menu-toggle").click()');
     assert.equal(await evaluate('document.querySelector(".staff-menu-toggle").getAttribute("aria-expanded")'), 'true');
@@ -554,22 +555,22 @@ try {
   await evaluate(`window.fixtureUser = {...window.fixtureUser,permissions:['report:read','booking:read','user:read','schedule:read','tour:write','support:manage']}; window.dispatchEvent(new Event('auth-change'));`);
   await waitFor(() => evaluate('document.querySelectorAll(".ao-metric").length===4 && document.querySelectorAll(".ao-recent tbody tr").length===1'), 'admin full dashboard');
   assert.ok(await evaluate('document.querySelector(".ao-recent").textContent.includes("2.500.000")'));
-  await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1080,deviceScaleFactor:1,mobile:false});
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1080, deviceScaleFactor: 1, mobile: false });
   await noOverflow('Admin dashboard desktop');
-  const adminShot = await send('Page.captureScreenshot', {format:'png',captureBeyondViewport:false});
-  await writeFile(join(tmpdir(),'tourgo-admin-desktop.png'), Buffer.from(adminShot.data,'base64'));
+  const adminShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  await writeFile(join(tmpdir(), 'tourgo-admin-desktop.png'), Buffer.from(adminShot.data, 'base64'));
   await evaluate('document.querySelector(".admin-collapse-toggle").click()');
-  assert.equal(await evaluate('document.querySelector(".admin-shell").classList.contains("admin-collapsed")'),true);
+  assert.equal(await evaluate('document.querySelector(".admin-shell").classList.contains("admin-collapsed")'), true);
   await evaluate('document.querySelector(".admin-collapse-toggle").click(); document.querySelector(".ao-recent tbody a").click()');
   await waitFor(() => evaluate('!!document.querySelector(".ops-bookings .ops-detail")'), 'admin booking detail deep link');
   await evaluate('location.hash="/admin"');
   await waitFor(() => evaluate('!!document.querySelector(".admin-overview")'), 'admin return overview');
-  for (const width of [390,320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
-    await noOverflow('Admin dashboard '+width+'px');
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
+    await noOverflow('Admin dashboard ' + width + 'px');
     await evaluate('document.querySelector(".admin-menu-toggle").click()');
-    assert.equal(await evaluate('document.querySelector(".admin-menu-toggle").getAttribute("aria-expanded")'),'true');
-    await noOverflow('Admin menu '+width+'px');
+    assert.equal(await evaluate('document.querySelector(".admin-menu-toggle").getAttribute("aria-expanded")'), 'true');
+    await noOverflow('Admin menu ' + width + 'px');
     await evaluate('document.querySelector(".admin-menu-toggle").click()');
   }
   await evaluate('window.adminReportError=true; location.hash="/admin?tab=reports"');
@@ -579,26 +580,26 @@ try {
   console.log('PASS admin redesign: real contracts, limited permissions, booking deep links, collapse, mobile and report retry; no real mutations');
   await evaluate(`window.recordsFixture={requests:[],user:{id:'record-user',fullName:'Khách kiểm thử hiện đại',email:'record@example.test',phone:'0901234567',status:'ACTIVE',roles:['CUSTOMER']},ticket:{id:'record-ticket',subject:'Cần tư vấn lịch đón',customerName:'Khách kiểm thử',createdAt:'2026-10-29T08:00:00Z',status:'OPEN',message:'Tôi muốn biết điểm đón và giờ tập trung.',replies:[]},notes:[{id:'record-note',title:'Thông báo kiểm thử',body:'Đơn đã được tiếp nhận.',createdAt:'2026-10-29T08:00:00Z',isRead:false,payload:{bookingId:'ui-booking'}}]}; window.fixtureUser.permissions.push('user:manage','role:manage'); window.dispatchEvent(new Event('auth-change')); location.hash='/admin?tab=customers';`);
   await waitFor(() => evaluate('document.querySelectorAll(".records-table tbody tr").length===1'), 'compact customers table');
-  assert.equal(await evaluate('document.querySelectorAll(".users-page details").length'),0);
+  assert.equal(await evaluate('document.querySelectorAll(".users-page details").length'), 0);
   await evaluate('document.querySelector(".records-toolbar input").value="Khách"; document.querySelector(".records-toolbar select").value="ACTIVE"; document.querySelector(".records-toolbar").requestSubmit()');
   await waitFor(() => evaluate('new URLSearchParams(window.recordsFixture.userQuery).get("status")==="ACTIVE"'), 'customer server filters');
   await evaluate('document.querySelector(".records-table .record-action").click()');
   await waitFor(() => evaluate('!!document.querySelector("dialog[open] input[name=fullName]")'), 'customer action dialog');
-  assert.equal(await evaluate('document.body.style.overflow'),'hidden');
+  assert.equal(await evaluate('document.body.style.overflow'), 'hidden');
   await evaluate('setReactInput(document.querySelector("dialog input[name=fullName]"),"Khách đã cập nhật"); document.querySelector("dialog form").requestSubmit()');
   await waitFor(() => evaluate('window.recordsFixture.user.fullName==="Khách đã cập nhật"'), 'customer fixture update');
   await evaluate('document.querySelector("dialog .record-dialog-close").click()');
   await waitFor(() => evaluate('!document.querySelector("dialog[open]")'), 'close dialog');
-  await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await noOverflow('Compact admin customers desktop');
-  const usersShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
-  await writeFile(join(tmpdir(),'tourgo-customers-modern.png'),Buffer.from(usersShot.data,'base64'));
-  for (const width of [390,320]) {
-    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
-    await noOverflow('Compact customers '+width+'px');
+  const usersShot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  await writeFile(join(tmpdir(), 'tourgo-customers-modern.png'), Buffer.from(usersShot.data, 'base64'));
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
+    await noOverflow('Compact customers ' + width + 'px');
     await evaluate('document.querySelector(".records-table .record-action").click()');
     await waitFor(() => evaluate('!!document.querySelector("dialog[open]")'), 'mobile customer dialog');
-    await noOverflow('Customer dialog '+width+'px');
+    await noOverflow('Customer dialog ' + width + 'px');
     await evaluate('document.querySelector("dialog .record-dialog-close").click()');
     await waitFor(() => evaluate('!document.querySelector("dialog")'), 'mobile dialog unmounted');
   }
@@ -608,7 +609,7 @@ try {
   await waitFor(() => evaluate('!!document.querySelector(".staff-shell .records-table")'), 'staff shared customer table');
   await evaluate('document.querySelector(".records-table .record-action").click()');
   await waitFor(() => evaluate('!!document.querySelector("dialog[open]")'), 'staff readonly dialog');
-  assert.equal(await evaluate('document.querySelectorAll("dialog form").length'),0);
+  assert.equal(await evaluate('document.querySelectorAll("dialog form").length'), 0);
   await evaluate('document.querySelector("dialog .record-dialog-close").click(); location.hash="/staff?tab=support"');
   await waitFor(() => evaluate('!!document.querySelector(".support-page .record-card")'), 'staff support compact');
   await evaluate('document.querySelector(".support-page .record-card .record-action").click()');
@@ -633,8 +634,8 @@ try {
   await evaluate('document.querySelector(".reviews-page .record-action").click()');
   await waitFor(() => evaluate('!!document.querySelector("dialog[open] input[name=rating]")'), 'review edit dialog');
   await noOverflow('Customer review dialog 320px');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await waitFor(() => evaluate('!document.querySelector("dialog[open]")'), 'dialog Escape keyboard');
   await waitFor(() => evaluate('document.body.style.overflow!=="hidden"'), 'dialog restores background scrolling');
   console.log('PASS compact cross-role UI: customer table/filters/update, readonly staff, dialogs, mobile, notifications, support reply, review edit and Escape; fixture mutations only');
@@ -652,6 +653,6 @@ try {
   }
   browser.kill();
   await pause(500);
-  await rm(profile, { recursive: true, force: true, maxRetries: 5 }).catch(() => {});
+  await rm(profile, { recursive: true, force: true, maxRetries: 5 }).catch(() => { });
 }
 

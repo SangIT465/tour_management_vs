@@ -4,6 +4,7 @@ import { BookingStatus } from '../../../common/enums/index.js';
 import { Booking } from '../../booking/entities/booking.entity.js';
 import { InvoiceService } from '../../booking/services/invoice.service.js';
 import { renderInvoice } from '../../booking/templates/invoice.template.js';
+import { PromotionService } from '../../promotion/promotion.service.js';
 import { MailOutboxService } from '../../mail/mail-outbox.service.js';
 import type { Payment } from '../entities/payment.entity.js';
 
@@ -13,6 +14,7 @@ export class PaymentReceiptService {
   constructor(
     private readonly invoices: InvoiceService,
     private readonly mail: MailOutboxService,
+    private readonly promotions: PromotionService,
   ) {}
   status(paymentIds: string[]) {
     return this.mail.receiptStatus(paymentIds);
@@ -41,6 +43,7 @@ export class PaymentReceiptService {
         await manager.save(Booking, closed);
       }
     }
+    await this.promotions.confirmRedemption(booking.id, manager);
     const invoice = await this.invoices.issue(booking.id, manager);
     await this.mail.enqueue(manager, {
       deduplicationKey: `payment-receipt:${payment.id}`,

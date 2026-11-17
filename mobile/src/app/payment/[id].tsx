@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Screen, Heading, Card, Title, Copy, Row, Button, Field, Chips, Message, LoadState, LoginRequired, Badge, layout } from '../../components/ui';
+import { Screen, Heading, Card, Title, Copy, Row, Button, Field, Chips, Message, LoadState, LoginRequired, Badge, AppText as Text, layout } from '../../components/ui';
 import { useResource } from '../../hooks/use-resource';
 import { useSession } from '../../context/session';
 import { api } from '../../lib/api';
 import { openInvoice } from '../../lib/invoice';
+import { fonts, palette, tracking } from '../../theme';
 import { methodNames, money, statusNames } from '../../lib/format';
 import type { Booking, Payment, Payments, PublicInfo } from '../../lib/types';
 
@@ -38,14 +39,23 @@ function PaymentContent({ id }: { id: string }) {
     if (Platform.OS === 'web') { if (globalThis.confirm('Giao dịch GIẢ LẬP, không thu tiền thật. Tiếp tục?')) work(); }
     else Alert.alert('Thanh toán giả lập', 'Giao dịch này không thu tiền thật. Tiếp tục?', [{ text: 'Quay lại', style: 'cancel' }, { text: 'Tiếp tục', onPress: work }]);
   }
-  return <Screen refresh={refresh} refreshing={summary.loading && !!item}><Heading title="Thanh toán đơn đặt tour" subtitle={booking.data?.tourName ?? item?.bookingCode} /><LoadState loading={summary.loading && !item} error={summary.error} retry={refresh} /><Message text={error} error /><Message text={notice} />
-    {item && <><Card><Badge>{statusNames[item.bookingStatus] ?? item.bookingStatus}</Badge><Row label="Mã đặt tour" value={item.bookingCode} /><Row label="Tổng tiền" value={money(item.total)} strong /><Row label="Đã nhận" value={money(item.paidTotal)} /><Row label="Đã hoàn" value={money(item.refundedTotal)} /><Row label="Còn phải trả" value={money(item.outstanding)} strong />{paid && <Message text="Hệ thống đã ghi nhận thanh toán. Việc xác nhận chuyến đi vẫn được cập nhật riêng trong đơn của bạn." />}<Button title="Xem chi tiết đơn" outline onPress={() => router.push({ pathname: '/bookings/[id]', params: { id } })} /></Card>
+  return <Screen refresh={refresh} refreshing={summary.loading && !!item}><Heading eyebrow="THANH TOÁN · TOURGO" title="Thanh toán đơn đặt tour" subtitle={booking.data?.tourName ?? item?.bookingCode} /><LoadState loading={summary.loading && !item} error={summary.error} retry={refresh} /><Message text={error} error /><Message text={notice} />
+    {item && <><View style={s.summary}>
+      <Badge>{statusNames[item.bookingStatus] ?? item.bookingStatus}</Badge>
+      <Row label="Mã đặt tour" value={item.bookingCode} />
+      <View style={s.totalRow}><Text style={s.totalLabel}>Còn phải trả</Text><Text style={s.total}>{money(item.outstanding)}</Text></View>
+      <Row label="Tổng tiền" value={money(item.total)} />
+      <Row label="Đã nhận" value={money(item.paidTotal)} />
+      <Row label="Đã hoàn" value={money(item.refundedTotal)} />
+      {paid && <Message text="Hệ thống đã ghi nhận thanh toán. Việc xác nhận chuyến đi vẫn được cập nhật riêng trong đơn của bạn." />}
+      <Button title="Xem chi tiết đơn" outline onPress={() => router.push({ pathname: '/bookings/[id]', params: { id } })} />
+    </View>
       {item.receiptEmail && <Card><Title>Email xác nhận thanh toán</Title><Copy>{({ SENT: 'Đã gửi email. Kiểm tra cả thư mục Spam / Thư rác.', PENDING: 'Email đang chờ được gửi.', SENDING: 'Hệ thống đang gửi email.', FAILED: 'Chưa gửi được email. Vui lòng liên hệ hỗ trợ.' } as Record<string, string>)[item.receiptEmail.status] ?? 'Đang cập nhật trạng thái email.'}</Copy><Copy muted>{booking.data?.contactEmail}</Copy></Card>}
       {booking.data?.invoice && <Card><Title>Hóa đơn đã phát hành</Title><Copy muted>{booking.data.invoice.number}</Copy><Button title="In hóa đơn" busy={busy} onPress={() => { void act(() => openInvoice(id, false)); }} /><Button title="Lưu / Chia sẻ PDF" outline busy={busy} onPress={() => { void act(() => openInvoice(id, true)); }} /></Card>}
       {canPay && <Card><Title>{item.total === 0 ? 'Xác nhận đơn miễn phí' : 'Phương thức thanh toán'}</Title>{item.total === 0 ? <Copy>Chi phí đã được giảm toàn bộ. Xác nhận để nhận hóa đơn và email, không cần chuyển tiền.</Copy> : <><Chips items={[{ label: 'Chuyển khoản', value: 'BANK_TRANSFER' }, { label: 'VNPay', value: 'VNPAY' }, { label: 'MoMo', value: 'MOMO' }]} value={method} onChange={value => { if (!busy) setMethod(value); }} /><Message text={method === 'BANK_TRANSFER' ? 'Chuyển khoản và gửi chứng từ; nhân viên sẽ đối chiếu trước khi ghi nhận thanh toán.' : 'VNPay / MoMo hiện là cổng GIẢ LẬP phục vụ đồ án, không thu tiền thật.'} /></>}<Button title={item.total === 0 ? 'Xác nhận đơn miễn phí' : 'Tạo giao dịch thanh toán'} busy={busy} onPress={() => { void act(() => api.request('/payments', { method: 'POST', body: { bookingId: id, method: item.total === 0 ? 'NO_CHARGE' : method } }), 'Đã tạo giao dịch. Xem hướng dẫn bên dưới.'); }} /></Card>}
       {canPay && item.total > 0 && <Card><Title>Thông tin chuyển khoản</Title>{info.loading ? <Copy muted>Đang tải thông tin ngân hàng...</Copy> : bank?.bankName && bank.accountName && bank.accountNumber ? <><Row label="Ngân hàng" value={bank.bankName} /><Row label="Chủ tài khoản" value={bank.accountName} /><Row label="Số tài khoản" value={bank.accountNumber} /><Row label="Nội dung chuyển khoản" value={item.bookingCode} /><Copy muted>Kiểm tra thông tin với CSKH trước khi chuyển tiền.</Copy></> : <Message text="Chưa có đầy đủ thông tin ngân hàng. Vui lòng liên hệ hỗ trợ trước khi chuyển tiền." />}</Card>}
-      <Title>Lịch sử giao dịch</Title>{!item.payments.length && <Card><Copy muted>Chưa có giao dịch.</Copy></Card>}
-      {item.payments.map(payment => <Card key={payment.id}><Title>{methodNames[payment.method] ?? payment.method}</Title><Badge>{statusNames[payment.status] ?? payment.status}</Badge><Row label="Số tiền" value={money(payment.amount)} /><Copy muted>Mã giao dịch: {payment.gatewayTxnRef ?? payment.id}</Copy>{!!payment.proofNote && <Copy>{payment.proofNote}</Copy>}{payment.status === 'PROOF_SUBMITTED' && <Message text="Chứng từ đang chờ đối chiếu. Không chuyển thêm tiền cho giao dịch này." />}
+      <Text style={s.historyTitle}>Lịch sử giao dịch</Text>{!item.payments.length && <Card><Copy muted>Chưa có giao dịch.</Copy></Card>}
+      {item.payments.map(payment => <Card key={payment.id}><View style={layout.spread}><Title>{methodNames[payment.method] ?? payment.method}</Title><Badge>{statusNames[payment.status] ?? payment.status}</Badge></View><Row label="Số tiền" value={money(payment.amount)} /><Copy muted>Mã giao dịch: {payment.gatewayTxnRef ?? payment.id}</Copy>{!!payment.proofNote && <Copy>{payment.proofNote}</Copy>}{payment.status === 'PROOF_SUBMITTED' && <Message text="Chứng từ đang chờ đối chiếu. Không chuyển thêm tiền cho giao dịch này." />}
         {canPay && payment.status === 'PENDING' && ['VNPAY', 'MOMO'].includes(payment.method) && <Button title="Thanh toán giả lập" disabled={busy || !payment.gatewayTxnRef} onPress={() => simulate(payment)} />}
         {canPay && payment.status === 'PENDING' && payment.method === 'BANK_TRANSFER' && <ProofForm disabled={busy} canUpload={!!user?.permissions.includes('file:upload')} onSubmit={(proofUrl, proofNote) => act(() => api.request(`/payments/${payment.id}/proof`, { method: 'POST', body: { proofUrl, ...(proofNote ? { proofNote } : {}) } }), 'Đã gửi chứng từ. Vui lòng chờ nhân viên đối chiếu.')} />}
       </Card>)}<Button title="Liên hệ hỗ trợ" outline onPress={() => router.push('/support')} />
@@ -81,3 +91,11 @@ function ProofForm({ disabled, canUpload, onSubmit }: { disabled: boolean; canUp
   }
   return <View style={layout.gap}>{canUpload && <Button title={uploading ? 'Đang tải ảnh...' : 'Chọn ảnh chứng từ từ điện thoại'} outline disabled={disabled} busy={uploading} onPress={() => { void pick(); }} />}<Field label="Đường dẫn chứng từ" value={proofUrl} onChangeText={setProofUrl} editable={!disabled && !uploading} placeholder="https://... hoặc ảnh vừa tải" maxLength={2048} /><Field label="Ghi chú chuyển khoản" value={note} onChangeText={setNote} multiline maxLength={1000} editable={!disabled && !uploading} /><Message text={error} error /><Button title="Gửi chứng từ chuyển khoản" disabled={disabled || uploading || !proofUrl.trim()} onPress={() => { void onSubmit(proofUrl.trim(), note.trim()); }} /></View>;
 }
+
+const s = StyleSheet.create({
+  summary: { borderTopWidth: 2, borderTopColor: palette.ink, backgroundColor: palette.sand, padding: 20, gap: 12 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: palette.lineStrong },
+  totalLabel: { fontFamily: fonts.sans, fontSize: 11, fontWeight: '600', letterSpacing: tracking.label, textTransform: 'uppercase', color: palette.muted },
+  total: { fontFamily: fonts.serif, fontSize: 32, color: palette.ink },
+  historyTitle: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 30, color: palette.ink, marginTop: 6 },
+});

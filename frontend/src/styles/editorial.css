@@ -1,0 +1,111 @@
+/*
+ * Giao diện editorial dùng chung cho toàn bộ khu khách hàng (cùng hệ với home.css / explore.css).
+ * Đặt sau tourgo.css để ghi đè tông xanh cũ. Không chạm tới khu quản trị/nhân viên.
+ */
+.customer-site {
+  --ed-ink: #211d18;
+  --ed-muted: #6f675c;
+  --ed-cream: #fbf8f3;
+  --ed-sand: #efe8dc;
+  --ed-line: #e3dccf;
+  --ed-accent: #a9693f;
+  --ed-accent-dark: #8c5430;
+  --ed-serif: 'Cormorant Garamond', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --ed-sans: 'Jost', 'Segoe UI', Arial, sans-serif;
+  --green: #a9693f; --dark: #211d18; --muted: #6f675c; --line: #e3dccf; --pale: #efe8dc; --coral: #a9693f;
+  color: var(--ed-ink); font-family: var(--ed-sans); background: var(--ed-cream);
+}
+.customer-site input, .customer-site select, .customer-site textarea, .customer-site button { font-family: inherit; }
+
+/* ---------- Tiêu đề ---------- */
+.customer-site h1, .customer-site h2, .customer-site h3 { font-family: var(--ed-serif); font-weight: 400; color: var(--ed-ink); letter-spacing: -.015em; }
+.customer-site .eyebrow { color: var(--ed-accent); font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase; }
+
+/* ---------- Header ---------- */
+.customer-site .tourgo-header { background: var(--ed-cream); border-bottom: 1px solid var(--ed-line); box-shadow: none; }
+.customer-site .tourgo-brand { color: var(--ed-ink); font-family: var(--ed-serif); font-size: 32px; font-weight: 500; letter-spacing: -.5px; }
+.customer-site .tourgo-header .nav-links { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.customer-site .tourgo-header .nav-links a { color: var(--ed-ink); font-weight: 500; }
+.customer-site .tourgo-header .nav-links a:hover, .customer-site .tourgo-header .nav-links a.active { color: var(--ed-accent); }
+.customer-site .tourgo-header .nav-links a.active:after { display: block; width: 100%; background: var(--ed-accent); bottom: -14px; }
+.customer-site .header-search { background: #fff; border: 1px solid var(--ed-line); border-radius: 0; }
+.customer-site .tourgo-header .nav-account > .btn { border-radius: 0; background: var(--ed-ink); border: 1px solid var(--ed-ink); color: #fff; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; box-shadow: none; }
+.customer-site .tourgo-header .nav-account > .btn:hover { background: var(--ed-accent); border-color: var(--ed-accent); }
+.customer-site .header-avatar { background: var(--ed-sand); color: var(--ed-accent-dark); font-family: var(--ed-serif); font-size: 20px; }
+.customer-site .header-user-links { border-radius: 0; border: 1px solid var(--ed-line); box-shadow: 0 14px 34px rgb(33 29 24 / .12); }
+.customer-site .header-user-links a, .customer-site .header-user-links button { border-radius: 0; letter-spacing: .04em; }
+.customer-site .header-user-links a:hover, .customer-site .header-user-links button:hover { background: var(--ed-sand); color: var(--ed-accent-dark); }
+
+/* ---------- Footer ---------- */
+.customer-site .footer { background: var(--ed-ink); }
+.customer-site .footer-invitation h2 { font-family: var(--ed-serif); font-weight: 400; font-size: clamp(30px, 3.4vw, 46px); color: #fff; }
+.customer-site .footer .btn.white { border-radius: 0; background: #fff; color: var(--ed-ink); letter-spacing: .12em; text-transform: uppercase; font-size: 12px; box-shadow: none; }
+.customer-site .footer .btn.white:hover { background: var(--ed-accent); color: #fff; }
+
+/* ---------- Nút ---------- */
+.customer-site .btn { border-radius: 0; background: var(--ed-ink); color: #fff; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; box-shadow: none; transition: background .2s, color .2s, border-color .2s; }
+.customer-site .btn:hover { background: var(--ed-accent); box-shadow: none; transform: none; }
+.customer-site .btn.outline { background: transparent; color: var(--ed-ink); border: 1px solid var(--ed-ink); }
+.customer-site .btn.outline:hover { background: var(--ed-ink); color: #fff; }
+.customer-site .btn.white { background: #fff; color: var(--ed-ink); }
+
+/* ---------- Form ---------- */
+.customer-site input:not([type=radio]):not([type=checkbox]), .customer-site select, .customer-site textarea { border-radius: 0; border-color: var(--ed-line); background: #fff; color: var(--ed-ink); }
+.customer-site input:not([type=radio]):not([type=checkbox]):focus, .customer-site select:focus, .customer-site textarea:focus { outline: none; border-color: var(--ed-accent); box-shadow: inset 0 -2px 0 var(--ed-accent); }
+.customer-site input[type=radio], .customer-site input[type=checkbox] { accent-color: var(--ed-accent); }
+/*
+ * Thanh tìm kiếm trên header: ô nhập nằm trong khung `.header-search` nên phải
+ * trong suốt, không viền, không margin — tránh bị luật form chung phía trên
+ * biến nó thành một ô trắng nổi bên trong khung.
+ */
+.customer-site .tourgo-header .header-search input[name="search"],
+.customer-site .tourgo-header .header-search input[name="search"]:focus {
+  margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+
+/* ---------- Thành phần dùng chung ---------- */
+.customer-site .chip { background: transparent; border: 1px solid var(--ed-line); border-radius: 0; color: var(--ed-ink); letter-spacing: .1em; text-transform: uppercase; font-size: 11px; }
+.customer-site .chip.selected { background: var(--ed-ink); border-color: var(--ed-ink); color: #fff; }
+.customer-site .panel, .customer-site .booking-panel { background: #fff; border: 1px solid var(--ed-line); border-radius: 0; box-shadow: none; }
+.customer-site .state { background: var(--ed-sand); border: 1px dashed #cfc4b1; border-radius: 0; color: var(--ed-muted); }
+.customer-site .pagination button { border-radius: 0; border-color: var(--ed-line); color: var(--ed-ink); }
+.customer-site .notice { border-radius: 0; background: var(--ed-sand); border: 1px solid var(--ed-line); color: var(--ed-accent-dark); }
+
+/* ---------- Chi tiết tour ---------- */
+.customer-site .detail-page { padding-block: 40px 96px; }
+.customer-site .detail-page .container, .customer-site .detail-page.container { max-width: 1320px; width: min(1320px, calc(100% - 96px)); }
+.customer-site .breadcrumbs { color: var(--ed-muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.customer-site .breadcrumbs a { color: var(--ed-ink); }
+.customer-site .breadcrumbs a:hover { color: var(--ed-accent); }
+.customer-site .detail-heading { align-items: flex-end; gap: 32px; margin: 28px 0 32px; padding-bottom: 28px; border-bottom: 1px solid var(--ed-line); }
+.customer-site .detail-heading h1 { margin: 12px 0 14px; font-size: clamp(40px, 5.2vw, 76px); line-height: 1; letter-spacing: -.025em; text-wrap: balance; }
+.customer-site .detail-meta { color: var(--ed-muted); font-size: 14px; letter-spacing: .04em; }
+.customer-site .detail-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.customer-site .detail-cover { height: clamp(320px, 56vh, 620px); border-radius: 0; object-fit: cover; width: 100%; }
+.customer-site .detail-layout { margin-top: 56px; gap: 64px; }
+.customer-site .detail-layout .panel { padding: 0 0 36px; margin-bottom: 36px; border: 0; border-bottom: 1px solid var(--ed-line); background: transparent; }
+.customer-site .detail-layout .panel h2 { margin: 0 0 18px; font-size: clamp(30px, 3vw, 42px); }
+.customer-site .detail-layout .panel p { color: var(--ed-muted); line-height: 1.75; }
+.customer-site .itinerary-day { border: 0; border-bottom: 1px solid var(--ed-line); border-radius: 0; padding: 18px 0; margin: 0; background: transparent; }
+.customer-site .itinerary-day summary { font-family: var(--ed-serif); font-size: 22px; font-weight: 500; cursor: pointer; }
+.customer-site .itinerary-day p { margin: 12px 0 0; }
+.customer-site .detail-layout .booking-panel { top: 24px; padding: 32px 28px; background: var(--ed-sand); border: 0; border-top: 2px solid var(--ed-ink); }
+.customer-site .booking-panel .price, .customer-site .booking-panel strong { font-family: var(--ed-serif); }
+.customer-site .booking-panel .price { color: var(--ed-ink); font-size: 44px; font-weight: 400; }
+.customer-site .booking-panel .btn { width: 100%; min-height: 54px; }
+
+@media (max-width: 1150px) {
+  .customer-site .detail-page .container, .customer-site .detail-page.container { width: calc(100% - 64px); }
+  .customer-site .detail-layout { gap: 40px; }
+}
+@media (max-width: 850px) {
+  .customer-site .detail-heading { align-items: flex-start; }
+  .customer-site .detail-layout .booking-panel { position: static; }
+  .customer-site .detail-layout { margin-top: 36px; }
+}
+@media (max-width: 560px) {
+  .customer-site .detail-page .container, .customer-site .detail-page.container { width: calc(100% - 32px); }
+  .customer-site .detail-cover { height: 260px; }
+  .customer-site .detail-heading h1 { font-size: 38px; }
+  .customer-site .detail-layout .booking-panel { padding: 24px 20px; }
+}

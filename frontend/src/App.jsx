@@ -8,6 +8,7 @@ import TourDetail from './pages/TourDetail.jsx';
 import Login from './pages/Login.jsx';
 import Booking from './pages/Booking.jsx';
 import MyBookings from './pages/MyBookings.jsx';
+import MyVouchers from './pages/MyVouchers.jsx';
 import Workspace from './pages/Workspace.jsx';
 import Account from './pages/Account.jsx';
 import PasswordRecovery from './pages/PasswordRecovery.jsx';
@@ -75,6 +76,7 @@ export default function App() {
   else if (path === '/account') page = <Protected next={route}><Account /></Protected>;
   else if (path === '/account/security') page = <Protected next={route}><Account securityOnly /></Protected>;
   else if (path === '/account/overview') page = <Protected next={route}><AccountOverview /></Protected>;
+  else if (path === '/account/vouchers') page = <Protected next={route}><MyVouchers /></Protected>;
   else if (path === '/notifications') page = <Protected next={route}><Notifications /></Protected>;
   else if (path === '/support') page = <Protected next={route}><Support /></Protected>;
   else if (path === '/reviews') page = <Protected next={route}><Reviews key={params.get('bookingId') || 'mine'} bookingId={params.get('bookingId')} /></Protected>;

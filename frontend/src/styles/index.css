@@ -4,6 +4,7 @@
 @import "./workspace.css";
 @import "./travel.css";
 @import "./tourgo.css";
+@import "./editorial.css";
 @import "./login.css";
 @import "./home.css";
 @import "./explore.css";
@@ -13,3 +14,9 @@
 @import "./staff.css";
 @import "./admin.css";
 @import "./records.css";
+@import "./editorial-login.css";
+@import "./editorial-checkout.css";
+@import "./editorial-account.css";
+@import "./editorial-pages.css";
+@import "./admin-pro.css";
+@import "./staff-pro.css";

@@ -1,0 +1,326 @@
+/*
+  Khu vực quản trị (Admin) — lớp hoàn thiện giao diện.
+  Phạm vi: chỉ .tourgo-admin (WorkspaceLayout). Không ảnh hưởng khách hàng và nhân viên (.staff-shell).
+  Nạp SAU admin.css / records.css / editorial-*.css nên có thể ghi đè an toàn.
+
+  Nguyên tắc: một họ xám lạnh, một màu nhấn duy nhất (xanh chàm dịu), viền 1px thay cho bóng đổ,
+  bo góc 8–10px nhất quán, khoảng cách theo thang 4/8, chữ tối thiểu 12px.
+*/
+.tourgo-admin {
+  --a-ink: #111827;
+  --a-text: #374151;
+  --a-muted: #6b7280;
+  --a-faint: #9ca3af;
+  --a-line: #e5e7eb;
+  --a-line-soft: #eef0f3;
+  --a-bg: #f5f6f8;
+  --a-surface: #fff;
+  --a-hover: #f3f4f6;
+  --a-accent: #2f5bc7;
+  --a-accent-hover: #264aa3;
+  --a-accent-soft: #eaeffb;
+  --a-accent-line: #cfdaf5;
+  --a-ok: #17653a;
+  --a-ok-bg: #e6f4ec;
+  --a-warn: #8a5a0b;
+  --a-warn-bg: #fdf3dc;
+  --a-bad: #b42318;
+  --a-bad-bg: #fdecea;
+  --a-radius: 10px;
+  --a-radius-sm: 8px;
+  --a-gap: 16px;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--a-bg);
+  color: var(--a-text);
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.tourgo-admin h1, .tourgo-admin h2, .tourgo-admin h3, .tourgo-admin h4 { color: var(--a-ink); font-weight: 600; letter-spacing: -.01em; }
+.tourgo-admin p { color: var(--a-muted); }
+.tourgo-admin a:hover { color: var(--a-accent); }
+.tourgo-admin :focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.tourgo-admin a, .tourgo-admin button { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+
+/* ---------- Sidebar ---------- */
+.tourgo-admin .admin-sidebar { background: var(--a-surface); border-right: 1px solid var(--a-line); padding: 0 12px 16px; color: var(--a-text); }
+.tourgo-admin .admin-logo { height: 60px; padding: 0 8px; gap: 10px; border-bottom: 1px solid var(--a-line-soft); margin: 0 -12px 8px; padding-inline: 20px; }
+.tourgo-admin .admin-logo .brand { font-size: 23px; color: var(--a-ink); letter-spacing: -.04em; }
+.tourgo-admin .admin-logo .brand svg { width: 36px; height: auto; }
+.tourgo-admin .admin-logo > span { padding: 3px 7px; background: var(--a-hover); color: var(--a-muted); border: 1px solid var(--a-line); border-radius: 5px; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.tourgo-admin .admin-sidebar-heading { padding: 12px 10px 6px; font-size: 11px; letter-spacing: .06em; color: var(--a-faint); font-weight: 600; }
+.tourgo-admin .admin-nav-group { margin: 6px 0 14px; }
+.tourgo-admin .admin-nav-group h2 { color: var(--a-faint); font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 0 10px; margin: 0 0 6px; text-transform: uppercase; }
+.tourgo-admin .admin-nav-group a { color: var(--a-text); padding: 0 10px; min-height: 38px; font-size: 13.5px; font-weight: 500; gap: 12px; border-radius: var(--a-radius-sm); margin: 2px 0; }
+.tourgo-admin .admin-nav-group a svg { color: var(--a-faint); }
+.tourgo-admin .admin-nav-group a:hover { background: var(--a-hover); color: var(--a-ink); }
+.tourgo-admin .admin-nav-group a:hover svg { color: var(--a-text); }
+.tourgo-admin .admin-nav-group a.active { background: var(--a-accent-soft); color: var(--a-accent); font-weight: 600; }
+.tourgo-admin .admin-nav-group a.active svg { color: var(--a-accent); }
+.tourgo-admin .admin-sidebar-note { margin-top: 12px; padding: 12px; border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-bg); color: var(--a-muted); font-size: 12px; line-height: 1.45; align-items: flex-start; }
+.tourgo-admin .admin-sidebar-note svg { color: var(--a-accent); margin-top: 1px; }
+
+/* ---------- Topbar ---------- */
+.tourgo-admin .admin-topbar { position: sticky; top: 0; z-index: 20; height: 60px; padding: 0 32px; gap: 16px; background: var(--a-surface); border-bottom: 1px solid var(--a-line); }
+.tourgo-admin .admin-collapse-toggle { width: 36px; height: 36px; padding: 0; align-items: center; justify-content: center; border-radius: var(--a-radius-sm); color: var(--a-muted); }
+.tourgo-admin .admin-collapse-toggle:hover { background: var(--a-hover); color: var(--a-ink); }
+.tourgo-admin .admin-search { height: 38px; max-width: 520px; padding: 0 4px 0 12px; gap: 8px; background: var(--a-bg); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); color: var(--a-faint); }
+.tourgo-admin .admin-search:focus-within { background: var(--a-surface); border-color: var(--a-accent); box-shadow: 0 0 0 3px var(--a-accent-soft); }
+.tourgo-admin .admin-search input { padding: 0; font-size: 13.5px; color: var(--a-ink); height: 100%; outline: 0; }
+.tourgo-admin .admin-search input::placeholder { color: var(--a-faint); }
+.tourgo-admin .admin-search select { width: 86px; height: 28px; margin-left: 4px; padding: 0 6px; border-left: 1px solid var(--a-line); border-radius: 0; font-size: 12.5px; color: var(--a-text); outline: 0; }
+.tourgo-admin .admin-session { gap: 4px; }
+.tourgo-admin .admin-header-icon, .tourgo-admin .admin-signout { width: 36px; height: 36px; padding: 0; align-items: center; justify-content: center; border-radius: var(--a-radius-sm); color: var(--a-muted); }
+.tourgo-admin .admin-header-icon:hover, .tourgo-admin .admin-signout:hover:not(:disabled) { background: var(--a-hover); color: var(--a-ink); }
+.tourgo-admin .admin-profile { gap: 10px; margin: 0 4px 0 8px; padding: 0 10px 0 8px; height: 40px; border-left: 1px solid var(--a-line); border-radius: 0; }
+.tourgo-admin .admin-avatar { width: 32px; height: 32px; border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent); font-size: 13px; font-weight: 600; }
+.tourgo-admin .admin-profile strong { font-size: 13px; font-weight: 600; color: var(--a-ink); line-height: 1.3; }
+.tourgo-admin .admin-profile small { margin: 0; font-size: 11.5px; color: var(--a-muted); line-height: 1.3; }
+
+/* ---------- Khung nội dung ---------- */
+.tourgo-admin .admin-content { width: 100%; max-width: 1520px; margin-inline: auto; padding: 28px 32px 40px; }
+.tourgo-admin .admin-bottomline { padding: 14px 32px; border-top: 1px solid var(--a-line); background: transparent; font-size: 12px; color: var(--a-faint); }
+
+/* Tiêu đề trang (trang quản lý chung) */
+.tourgo-admin .admin-content .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 20px; }
+.tourgo-admin .admin-content .section-heading h1, .tourgo-admin .admin-content .section-heading h2, .tourgo-admin .admin-content .records-heading h1, .tourgo-admin .admin-content .workspace-page > h2 { margin: 0; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.02em; color: var(--a-ink); }
+.tourgo-admin .admin-content .section-heading p, .tourgo-admin .admin-content .records-heading p { margin: 4px 0 0; font-size: 13.5px; color: var(--a-muted); }
+.tourgo-admin .admin-content .eyebrow, .tourgo-admin .records-eyebrow { margin: 0 0 4px; font-size: 11.5px; font-weight: 600; letter-spacing: .08em; color: var(--a-accent); }
+.tourgo-admin .records-heading { margin-bottom: 20px; }
+.tourgo-admin .records-page h1 { margin: 0 0 4px; font-size: 22px; color: var(--a-ink); }
+
+/* ---------- Nút ---------- */
+.tourgo-admin .btn { min-height: 38px; padding: 8px 16px; gap: 8px; border-radius: var(--a-radius-sm); background: var(--a-accent); border: 1px solid var(--a-accent); color: #fff; font-size: 13.5px; font-weight: 500; box-shadow: none; }
+.tourgo-admin .btn:hover { background: var(--a-accent-hover); border-color: var(--a-accent-hover); color: #fff; box-shadow: none; }
+.tourgo-admin .btn:active { transform: translateY(1px); }
+.tourgo-admin .btn.small { min-height: 34px; padding: 6px 14px; font-size: 13px; }
+.tourgo-admin .btn.outline { background: var(--a-surface); border-color: var(--a-line); color: var(--a-ink); }
+.tourgo-admin .btn.outline:hover { background: var(--a-hover); border-color: #d1d5db; color: var(--a-ink); }
+.tourgo-admin .text-button { color: var(--a-accent); font-size: 13px; font-weight: 500; padding: 4px 8px; border-radius: 6px; }
+.tourgo-admin .text-button:hover { background: var(--a-accent-soft); }
+.tourgo-admin .text-button.danger, .tourgo-admin .danger { color: var(--a-bad); }
+.tourgo-admin .text-button.danger:hover { background: var(--a-bad-bg); }
+.tourgo-admin .table-actions { gap: 4px; align-items: center; }
+.tourgo-admin .record-action { min-height: 34px; padding: 6px 12px; border-radius: var(--a-radius-sm); border: 1px solid var(--a-line); background: var(--a-surface); color: var(--a-ink); font-size: 13px; font-weight: 500; }
+.tourgo-admin .record-action:hover { background: var(--a-hover); border-color: #d1d5db; }
+.tourgo-admin .record-action.primary { background: var(--a-accent); border-color: var(--a-accent); color: #fff; }
+.tourgo-admin .record-action.primary:hover { background: var(--a-accent-hover); border-color: var(--a-accent-hover); }
+.tourgo-admin .records-toolbar .btn, .tourgo-admin .action-form .btn { background: var(--a-accent); border-color: var(--a-accent); color: #fff; border-radius: var(--a-radius-sm); min-height: 38px; font-size: 13.5px; padding: 8px 16px; }
+.tourgo-admin .records-toolbar .btn:hover, .tourgo-admin .action-form .btn:hover { background: var(--a-accent-hover); border-color: var(--a-accent-hover); }
+
+/* ---------- Thanh công cụ / lọc ---------- */
+.tourgo-admin .admin-content .admin-toolbar, .tourgo-admin .records-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; padding: 12px; background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius); box-shadow: none; }
+.tourgo-admin .admin-content .admin-toolbar form { display: flex; gap: 8px; flex: 1; min-width: 220px; }
+.tourgo-admin .admin-content .admin-toolbar input, .tourgo-admin .admin-content .admin-toolbar select, .tourgo-admin .records-filter select { min-height: 38px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-surface); color: var(--a-ink); font-size: 13.5px; }
+.tourgo-admin .admin-content .admin-toolbar form input { flex: 1; min-width: 0; }
+.tourgo-admin .records-search { height: 38px; padding: 0 12px; background: var(--a-bg); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); color: var(--a-faint); }
+.tourgo-admin .records-search:focus-within { background: var(--a-surface); border-color: var(--a-accent); box-shadow: 0 0 0 3px var(--a-accent-soft); }
+.tourgo-admin .records-search input { padding: 0; font-size: 13.5px; outline: 0; }
+.tourgo-admin .records-toolbar label, .tourgo-admin .records-filter { font-size: 12.5px; color: var(--a-muted); }
+.tourgo-admin .records-toolbar p { font-size: 13px; color: var(--a-muted); }
+
+/* ---------- Bảng ---------- */
+.tourgo-admin .admin-content .table-wrap, .tourgo-admin .records-surface { background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius); box-shadow: none; overflow-x: auto; }
+.tourgo-admin .records-surface { overflow: hidden; }
+.tourgo-admin .admin-content .table-wrap table, .tourgo-admin .records-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 0; }
+.tourgo-admin .admin-content .table-wrap th, .tourgo-admin .records-table th { padding: 11px 16px; background: #f9fafb; border-bottom: 1px solid var(--a-line); color: var(--a-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; text-align: left; white-space: nowrap; }
+.tourgo-admin .admin-content .table-wrap td, .tourgo-admin .records-table td { padding: 14px 16px; border-bottom: 1px solid var(--a-line-soft); color: var(--a-text); font-size: 13.5px; vertical-align: middle; }
+.tourgo-admin .admin-content .table-wrap tbody tr:last-child td, .tourgo-admin .records-table tbody tr:last-child td { border-bottom: 0; }
+.tourgo-admin .admin-content .table-wrap tbody tr:hover, .tourgo-admin .records-table tbody tr:hover { background: #fafbfc; }
+.tourgo-admin .admin-content .table-wrap td strong, .tourgo-admin .record-identity strong { color: var(--a-ink); font-weight: 600; }
+.tourgo-admin .admin-content .table-wrap td small, .tourgo-admin .records-table td small { display: block; margin-top: 3px; font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .admin-content .table-wrap td small.muted { margin: 0 0 2px; letter-spacing: .02em; }
+.tourgo-admin .records-list-heading { padding: 16px 20px; border-bottom: 1px solid var(--a-line); }
+.tourgo-admin .records-list-heading h2 { font-size: 15px !important; color: var(--a-ink); }
+.tourgo-admin .records-list-heading > span { font-size: 12.5px; color: var(--a-muted); }
+.tourgo-admin .record-avatar { width: 36px; height: 36px; border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent); font-weight: 600; }
+.tourgo-admin .record-badge { padding: 3px 8px; border-radius: 5px; background: var(--a-hover); color: var(--a-muted); font-size: 12px; font-weight: 500; }
+.tourgo-admin .record-badge.success { background: var(--a-ok-bg); color: var(--a-ok); }
+.tourgo-admin .record-badge.danger { background: var(--a-bad-bg); color: var(--a-bad); }
+.tourgo-admin .record-badge.warning { background: var(--a-warn-bg); color: var(--a-warn); }
+.tourgo-admin .record-badge.info { background: var(--a-accent-soft); color: var(--a-accent); }
+
+/* Trạng thái dạng nhãn */
+.tourgo-admin .status { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 5px; background: var(--a-hover); color: var(--a-muted); font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+.tourgo-admin .status.published, .tourgo-admin .status.confirmed, .tourgo-admin .status.completed, .tourgo-admin .status.active, .tourgo-admin .status.paid, .tourgo-admin .status.open, .tourgo-admin .status.approved, .tourgo-admin .status.resolved { background: var(--a-ok-bg); color: var(--a-ok); }
+.tourgo-admin .status.draft, .tourgo-admin .status.pending, .tourgo-admin .status.pending_payment, .tourgo-admin .status.pending_confirmation, .tourgo-admin .status.processing { background: var(--a-warn-bg); color: var(--a-warn); }
+.tourgo-admin .status.hidden, .tourgo-admin .status.cancelled, .tourgo-admin .status.rejected, .tourgo-admin .status.expired, .tourgo-admin .status.failed, .tourgo-admin .status.locked { background: var(--a-bad-bg); color: var(--a-bad); }
+
+/* ---------- Panel / biểu mẫu ---------- */
+.tourgo-admin .admin-content .panel { padding: 24px; background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius); box-shadow: none; }
+.tourgo-admin .admin-content .panel h2 { font-size: 17px; margin: 0 0 12px; }
+.tourgo-admin .admin-content .panel h3 { font-size: 15px; margin: 0 0 14px; }
+.tourgo-admin .admin-content .panel p { font-size: 13.5px; }
+.tourgo-admin .admin-content .workspace-form, .tourgo-admin .admin-content .workspace-page > .panel.workspace-form { max-width: 760px; margin-bottom: 20px; padding: 24px; }
+.tourgo-admin .admin-content .workspace-columns { gap: var(--a-gap); }
+.tourgo-admin .admin-content .stat-grid { gap: var(--a-gap); margin: 0 0 var(--a-gap); }
+.tourgo-admin .admin-content .stat-grid > * { padding: 18px 20px; }
+.tourgo-admin .admin-content .stat-grid strong { color: var(--a-ink); font-size: 24px; font-weight: 600; }
+.tourgo-admin .action-form { gap: 16px; }
+.tourgo-admin .action-form label { gap: 6px; font-size: 13px; font-weight: 500; color: var(--a-text); }
+.tourgo-admin .action-form input, .tourgo-admin .action-form select, .tourgo-admin .action-form textarea,
+.tourgo-admin .promotion-admin-body input, .tourgo-admin .promotion-admin-body select, .tourgo-admin .promotion-admin-body textarea, .tourgo-admin .promotion-admin-select select { min-height: 40px; padding: 9px 12px; border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-surface); color: var(--a-ink); font-size: 13.5px; box-shadow: none; }
+.tourgo-admin .action-form input:focus, .tourgo-admin .action-form select:focus, .tourgo-admin .action-form textarea:focus,
+.tourgo-admin .promotion-admin-body input:focus, .tourgo-admin .promotion-admin-body select:focus, .tourgo-admin .promotion-admin-body textarea:focus { outline: 0; border-color: var(--a-accent); box-shadow: 0 0 0 3px var(--a-accent-soft); }
+.tourgo-admin .action-form small, .tourgo-admin .promotion-admin .muted { font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .notice { padding: 10px 14px; border: 1px solid var(--a-accent-line); border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent-hover); font-size: 13.5px; margin: 0 0 16px; }
+.tourgo-admin .notice.error { border-color: #f5c6c1; background: var(--a-bad-bg); color: var(--a-bad); }
+.tourgo-admin .admin-content .state { padding: 48px 20px; border: 1px dashed var(--a-line); border-radius: var(--a-radius); background: var(--a-surface); }
+.tourgo-admin .admin-content .pagination { margin: 16px 0 0; gap: 8px; }
+.tourgo-admin .admin-content .pagination button { min-height: 34px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-surface); color: var(--a-ink); font-size: 13px; }
+.tourgo-admin .admin-content .pagination button:hover:not(:disabled) { background: var(--a-hover); }
+
+/* Tabs */
+.tourgo-admin .records-tabs, .tourgo-admin .promotion-admin-tabs { gap: 4px; border-bottom: 1px solid var(--a-line); margin: 0 0 20px; }
+.tourgo-admin .records-tabs button, .tourgo-admin .promotion-admin-tabs button { padding: 10px 14px; font-size: 13.5px; font-weight: 500; color: var(--a-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tourgo-admin .records-tabs button:hover, .tourgo-admin .promotion-admin-tabs button:hover { color: var(--a-ink); }
+.tourgo-admin .records-tabs button[aria-pressed=true], .tourgo-admin .promotion-admin-tabs button.active { color: var(--a-accent); border-bottom-color: var(--a-accent); }
+
+/* Quản lý mã giảm giá */
+.tourgo-admin .promotion-admin { margin-top: 24px; padding: 24px; }
+.tourgo-admin .promotion-admin .section-heading h3 { font-size: 16px; color: var(--a-ink); }
+.tourgo-admin .promotion-scope-list li, .tourgo-admin .promotion-stats > div { border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-bg); color: var(--a-text); font-size: 13px; }
+.tourgo-admin .promotion-stats dt { font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .promotion-stats dd { font-size: 15px; color: var(--a-ink); }
+
+/* Hộp thoại */
+.tourgo-admin .record-dialog { border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-bg); color: var(--a-text); box-shadow: 0 24px 64px rgb(17 24 39 / .22); }
+.tourgo-admin .record-dialog::backdrop { background: rgb(17 24 39 / .45); backdrop-filter: blur(2px); }
+.tourgo-admin .record-dialog-heading { padding: 18px 24px; background: var(--a-surface); border-bottom: 1px solid var(--a-line); }
+.tourgo-admin .record-dialog-heading span { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--a-faint); }
+.tourgo-admin .record-dialog-heading h2 { font-size: 18px !important; color: var(--a-ink); }
+.tourgo-admin .record-dialog-close { border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); background: var(--a-surface); color: var(--a-muted); }
+.tourgo-admin .record-dialog-close:hover { background: var(--a-hover); color: var(--a-ink); }
+.tourgo-admin .record-form-card, .tourgo-admin .records-page .record-card { border: 1px solid var(--a-line); border-radius: var(--a-radius); background: var(--a-surface); box-shadow: none; }
+.tourgo-admin .record-form-card h3, .tourgo-admin .record-card h2, .tourgo-admin .record-card h3 { color: var(--a-ink); font-size: 15px !important; }
+.tourgo-admin .record-card p, .tourgo-admin .record-dialog-body > p, .tourgo-admin .record-form-card p { font-size: 13px; color: var(--a-muted); }
+.tourgo-admin .notification-feed { border: 1px solid var(--a-line); border-radius: var(--a-radius); background: var(--a-surface); }
+.tourgo-admin blockquote, .tourgo-admin .record-thread blockquote { border-left: 3px solid var(--a-accent); border-radius: 0 var(--a-radius-sm) var(--a-radius-sm) 0; background: var(--a-accent-soft); color: var(--a-text); font-size: 13px; }
+
+/* ---------- Trang tổng quan ---------- */
+.tourgo-admin .ao-welcome { margin: 0 0 24px; padding: 0; min-height: 0; background: none; align-items: flex-end; }
+.tourgo-admin .ao-welcome > div > span { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--a-accent); }
+.tourgo-admin .ao-welcome h1 { margin: 4px 0 4px; font-size: 24px; line-height: 1.3; font-weight: 600; letter-spacing: -.02em; color: var(--a-ink); }
+.tourgo-admin .ao-welcome p { font-size: 14px; color: var(--a-muted); }
+.tourgo-admin .ao-date { min-width: 0; padding: 8px 14px; gap: 10px; background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); }
+.tourgo-admin .ao-date > svg { width: 18px; height: 18px; padding: 0; background: none; color: var(--a-muted); border-radius: 0; }
+.tourgo-admin .ao-date strong { font-size: 13px; font-weight: 500; color: var(--a-ink); text-transform: capitalize; }
+.tourgo-admin .ao-date small { display: none; }
+
+.tourgo-admin .ao-metrics { gap: var(--a-gap); margin: 0 0 var(--a-gap); }
+.tourgo-admin .ao-metric { padding: 18px 20px; gap: 14px; background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius); align-items: flex-start; }
+.tourgo-admin .ao-metric-icon, .tourgo-admin .ao-metric-icon.blue, .tourgo-admin .ao-metric-icon.green, .tourgo-admin .ao-metric-icon.orange, .tourgo-admin .ao-metric-icon.purple { width: 40px; height: 40px; border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent); }
+.tourgo-admin .ao-metric-icon svg { width: 20px; height: 20px; }
+.tourgo-admin .ao-metric h2 { margin: 0 0 4px; font-size: 13px !important; font-weight: 500; letter-spacing: 0; color: var(--a-muted); }
+.tourgo-admin .ao-metric strong { font-size: clamp(20px, 1.9vw, 26px); font-weight: 600; letter-spacing: -.02em; color: var(--a-ink); line-height: 1.2; }
+.tourgo-admin .ao-metric small { margin-top: 6px; font-size: 12px; color: var(--a-muted); line-height: 1.4; }
+
+.tourgo-admin .ao-main-grid, .tourgo-admin .ao-main, .tourgo-admin .ao-charts { gap: var(--a-gap); }
+.tourgo-admin .ao-main-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+.tourgo-admin .ao-bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--a-gap); margin-top: var(--a-gap); }
+.tourgo-admin .ao-card { padding: 20px; background: var(--a-surface); border: 1px solid var(--a-line); border-radius: var(--a-radius); box-shadow: none; }
+.tourgo-admin .ao-heading { margin-bottom: 16px; }
+.tourgo-admin .ao-heading h2 { gap: 8px; font-size: 15px !important; font-weight: 600; letter-spacing: -.01em; color: var(--a-ink); }
+.tourgo-admin .ao-heading h2 svg { color: var(--a-faint); width: 18px; height: 18px; }
+.tourgo-admin .ao-heading > a { font-size: 12.5px; font-weight: 500; color: var(--a-accent); }
+.tourgo-admin .ao-heading > a:hover { color: var(--a-accent-hover); text-decoration: underline; text-underline-offset: 3px; }
+.tourgo-admin .ao-heading select { max-width: 120px; padding: 6px 8px; border: 1px solid var(--a-line); border-radius: 6px; font-size: 12.5px; color: var(--a-text); background: var(--a-surface); }
+
+.tourgo-admin .ao-bar-chart { height: 232px; gap: 12px; padding-top: 8px; }
+.tourgo-admin .ao-axis { font-size: 11px; color: var(--a-faint); }
+.tourgo-admin .ao-bars { gap: 10px; background: repeating-linear-gradient(to top, transparent 0, transparent 48px, var(--a-line-soft) 48px, var(--a-line-soft) 49px); }
+.tourgo-admin .ao-bar-track { border-bottom: 1px solid var(--a-line); }
+.tourgo-admin .ao-bar-track > span { background: #bccaee; border-radius: 4px 4px 0 0; }
+.tourgo-admin .ao-bar-track > span:hover { background: var(--a-accent); }
+.tourgo-admin .ao-bar-column small { font-size: 11.5px; color: var(--a-muted); }
+.tourgo-admin .ao-tooltip { padding: 6px 10px; background: var(--a-ink); color: #fff; border: 0; border-radius: 6px; font-size: 12px; box-shadow: 0 6px 16px rgb(17 24 39 / .2); }
+.tourgo-admin .ao-note, .tourgo-admin .ao-empty { font-size: 12px; line-height: 1.55; color: var(--a-muted); }
+.tourgo-admin .ao-note a { color: var(--a-accent); font-weight: 500; }
+
+.tourgo-admin .ao-donut-layout { gap: 20px; }
+.tourgo-admin .ao-donut strong { font-size: 26px; font-weight: 600; color: var(--a-ink); }
+.tourgo-admin .ao-donut small { font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .ao-donut-layout li { font-size: 13px; color: var(--a-text); align-items: center; gap: 8px; }
+.tourgo-admin .ao-donut-layout li i { border-radius: 3px; margin-top: 0; }
+.tourgo-admin .ao-donut-layout li small { margin-top: 1px; font-size: 12px; color: var(--a-muted); }
+
+.tourgo-admin .ao-table-scroll { border: 1px solid var(--a-line); border-radius: var(--a-radius-sm); }
+.tourgo-admin .ao-card table { font-size: 13px; }
+.tourgo-admin .ao-card th { padding: 10px 12px; background: #f9fafb; color: var(--a-muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.tourgo-admin .ao-card td { padding: 12px; border-bottom: 1px solid var(--a-line-soft); color: var(--a-text); font-size: 13px; }
+.tourgo-admin .ao-card tbody tr:last-child td { border-bottom: 0; }
+.tourgo-admin .ao-card tbody tr:hover { background: #fafbfc; }
+.tourgo-admin .ao-card td a { color: var(--a-accent); font-weight: 500; }
+.tourgo-admin .ao-status { padding: 3px 8px; border-radius: 5px; background: var(--a-accent-soft); color: var(--a-accent); font-size: 12px; font-weight: 500; }
+.tourgo-admin .ao-status.confirmed, .tourgo-admin .ao-status.completed { background: var(--a-ok-bg); color: var(--a-ok); }
+.tourgo-admin .ao-status.pending_payment, .tourgo-admin .ao-status.pending_confirmation { background: var(--a-warn-bg); color: var(--a-warn); }
+.tourgo-admin .ao-status.cancelled, .tourgo-admin .ao-status.rejected, .tourgo-admin .ao-status.expired { background: var(--a-bad-bg); color: var(--a-bad); }
+.tourgo-admin .ao-card td a.ao-view { padding: 4px 10px; border: 1px solid var(--a-line); border-radius: 6px; background: var(--a-surface); color: var(--a-ink); font-size: 12.5px; font-weight: 500; }
+.tourgo-admin .ao-card td a.ao-view:hover { background: var(--a-hover); }
+
+.tourgo-admin .ao-tour { gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--a-line-soft); }
+.tourgo-admin .ao-tour:last-of-type { border-bottom: 0; }
+.tourgo-admin .ao-tour-art, .tourgo-admin .ao-tour:nth-of-type(2n) .ao-tour-art { width: 56px; height: 56px; border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent); }
+.tourgo-admin .ao-tour-art svg { width: 24px; height: 24px; }
+.tourgo-admin .ao-tour-art b { left: -6px; top: -6px; width: 22px; height: 22px; background: var(--a-ink); color: #fff; border: 2px solid var(--a-surface); font-size: 11px; font-weight: 600; }
+.tourgo-admin .ao-tour h3 { margin: 0 0 4px; font-size: 13.5px; font-weight: 600; line-height: 1.4; color: var(--a-ink); }
+.tourgo-admin .ao-tour:hover h3 { color: var(--a-accent); }
+.tourgo-admin .ao-tour small { font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .ao-tour strong { margin-top: 4px; font-size: 14px; font-weight: 600; color: var(--a-ink); }
+
+.tourgo-admin .ao-customer { padding: 10px 0; gap: 12px; border-bottom: 1px solid var(--a-line-soft); }
+.tourgo-admin .ao-customer:last-child { border-bottom: 0; }
+.tourgo-admin .ao-customer .admin-avatar { width: 32px; height: 32px; font-size: 13px; }
+.tourgo-admin .ao-customer strong { font-size: 13.5px; font-weight: 600; color: var(--a-ink); }
+.tourgo-admin .ao-customer small { font-size: 12px; color: var(--a-muted); }
+.tourgo-admin .ao-notification { gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--a-line-soft); }
+.tourgo-admin .ao-notification:last-child { border-bottom: 0; }
+.tourgo-admin .ao-notification > span { width: 32px; height: 32px; border-radius: var(--a-radius-sm); background: var(--a-accent-soft); color: var(--a-accent); }
+.tourgo-admin .ao-notification strong { font-size: 13.5px; font-weight: 600; color: var(--a-ink); }
+.tourgo-admin .ao-notification p { margin: 2px 0; font-size: 12.5px; line-height: 1.45; color: var(--a-muted); }
+.tourgo-admin .ao-notification small { font-size: 12px; color: var(--a-faint); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1250px) {
+  .tourgo-admin { grid-template-columns: 224px minmax(0, 1fr); }
+  .tourgo-admin .ao-main-grid { grid-template-columns: minmax(0, 1fr); }
+  .tourgo-admin .ao-bottom-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tourgo-admin .ao-bottom-grid > :last-child { grid-column: 1 / -1; }
+  .tourgo-admin .admin-topbar { padding-inline: 24px; }
+  .tourgo-admin .admin-content { padding: 24px 24px 32px; }
+}
+@media (max-width: 1000px) {
+  .tourgo-admin .ao-bottom-grid { grid-template-columns: minmax(0, 1fr); }
+  .tourgo-admin .ao-bottom-grid > :last-child { grid-column: auto; }
+  .tourgo-admin .admin-profile { padding: 0; margin: 0 0 0 4px; border-left: 0; }
+  .tourgo-admin .admin-content { padding: 20px; }
+  .tourgo-admin .admin-bottomline { padding-inline: 20px; }
+}
+@media (max-width: 760px) {
+  .tourgo-admin .admin-sidebar { padding: 0 16px 12px; border-right: 0; border-bottom: 1px solid var(--a-line); }
+  .tourgo-admin .admin-logo { margin: 0 -16px; padding-inline: 16px; border-bottom: 0; height: 56px; }
+  .tourgo-admin .admin-menu-toggle { color: var(--a-text); }
+  .tourgo-admin .admin-topbar { position: static; height: auto; min-height: 56px; padding: 10px 16px; }
+  .tourgo-admin .admin-search { max-width: none; }
+  .tourgo-admin .admin-content { padding: 16px; }
+  .tourgo-admin .admin-bottomline { padding-inline: 16px; }
+  .tourgo-admin .admin-content .section-heading { flex-wrap: wrap; align-items: flex-start; }
+  .tourgo-admin .ao-welcome { margin: 0 0 16px; padding: 0; }
+  .tourgo-admin .ao-welcome h1 { font-size: 21px; }
+  .tourgo-admin .ao-metrics { gap: 12px; }
+  .tourgo-admin .ao-metric { padding: 14px; gap: 10px; }
+  .tourgo-admin .ao-metric-icon, .tourgo-admin .ao-metric-icon.blue, .tourgo-admin .ao-metric-icon.green, .tourgo-admin .ao-metric-icon.orange, .tourgo-admin .ao-metric-icon.purple { width: 34px; height: 34px; }
+  .tourgo-admin .ao-metric-icon svg { width: 18px; height: 18px; }
+  .tourgo-admin .ao-card { padding: 16px; }
+  .tourgo-admin .admin-content .panel, .tourgo-admin .promotion-admin { padding: 18px; }
+}
+@media (max-width: 400px) {
+  .tourgo-admin .ao-metric { flex-direction: column; }
+}
+@media print {
+  .tourgo-admin .ao-card, .tourgo-admin .ao-metric { border-color: #ccc; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tourgo-admin a, .tourgo-admin button { transition: none; }
+}

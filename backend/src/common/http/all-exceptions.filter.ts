@@ -82,7 +82,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (status === HttpStatus.TOO_MANY_REQUESTS) {
       this.logger.warn(`[${requestId}] ${request.method} ${path} → 429 bị chặn bởi rate limit`);
     } else {
-      this.logger.debug(`[${requestId}] ${request.method} ${path} → ${status} ${code}`);
+      /**
+       * Lỗi 4xx phải log kèm `message` và `details`.
+       *
+       * Trước đây chỉ log `code` nên mọi `BadRequestException` của service đều
+       * hiện ra thành một dòng `→ 400 BAD_REQUEST` vô nghĩa: không phân biệt được
+       * "mã khuyến mãi hết hạn" với "đơn không có hành khách chiếm chỗ", và cũng
+       * không thấy field nào sai khi `ValidationPipe` từ chối. Người vận hành phải
+       * dựng lại request mới biết nguyên nhân.
+       */
+      const detailText = details.length
+        ? ` | ${details.map((item) => (item.field ? `${item.field}: ${item.message}` : item.message)).join('; ')}`
+        : '';
+      this.logger.debug(`[${requestId}] ${request.method} ${path} → ${status} ${code}: ${message}${detailText}`);
     }
 
     // Đã gửi header (streaming) thì không ghi body được nữa.

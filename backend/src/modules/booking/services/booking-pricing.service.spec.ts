@@ -6,7 +6,7 @@ import type { PromotionService } from '../../promotion/promotion.service.js';
 
 function fixture(held = 0) {
   const schedules = { sumActiveHeldSeats: vi.fn().mockResolvedValue(held) };
-  const promotions = { findUsableOrFail: vi.fn() };
+  const promotions = { evaluateForBooking: vi.fn() };
   const pricing = new BookingPricingService(
     schedules as unknown as ScheduleService,
     promotions as unknown as PromotionService,
@@ -50,9 +50,9 @@ describe('Booking pricing boundaries', () => {
 
   it('groups tickets and applies the server promotion to the complete subtotal', async () => {
     const { pricing, schedule, promotions } = fixture();
-    promotions.findUsableOrFail.mockResolvedValue({
-      code: 'SAVE5',
-      calculateDiscount: () => 150_000,
+    promotions.evaluateForBooking.mockResolvedValue({
+      promotion: { code: 'SAVE5' },
+      discount: 150_000,
     });
     const quote = await pricing.quote(
       schedule,
@@ -64,12 +64,10 @@ describe('Booking pricing boundaries', () => {
       'SAVE5',
       'customer',
     );
-    expect(promotions.findUsableOrFail).toHaveBeenCalledWith(
-      'SAVE5',
-      3_000_000,
-      undefined,
-      'customer',
-    );
+    expect(promotions.evaluateForBooking).toHaveBeenCalledWith({
+      code: 'SAVE5', subtotal: 3_000_000, scheduleId: 'schedule',
+      customerId: 'customer', channel: 'ONLINE',
+    });
     expect(quote).toMatchObject({
       subtotal: 3_000_000,
       discount: 150_000,

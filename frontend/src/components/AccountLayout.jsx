@@ -4,8 +4,8 @@ import { Icon } from './UI.jsx';
 
 const links = [
   ['/account/overview', 'Tổng quan', 'grid'], ['/account', 'Thông tin cá nhân', 'user'], ['/bookings', 'Tour của tôi', 'bag'],
-  ['/favorites', 'Tour yêu thích', 'heart'], ['/reviews', 'Đánh giá của tôi', 'star'], ['/notifications', 'Thông báo', 'bell'],
-  ['/account/security', 'Bảo mật tài khoản', 'shield'], ['/support', 'Trung tâm hỗ trợ', 'headset'],
+  ['/account/vouchers', 'Ưu đãi của tôi', 'ticket'], ['/favorites', 'Tour yêu thích', 'heart'], ['/reviews', 'Đánh giá của tôi', 'star'],
+  ['/notifications', 'Thông báo', 'bell'], ['/account/security', 'Bảo mật tài khoản', 'shield'], ['/support', 'Trung tâm hỗ trợ', 'headset'],
 ];
 export default function AccountLayout({ path, children }) {
   const { user, logout } = useAuth();
