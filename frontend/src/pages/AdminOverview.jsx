@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useApi } from '../hooks.js';
-import { date, money, statusLabels } from '../utils.js';
-import { vietnamToday, bookingChart } from '../staff-dashboard.js';
-import { popularTours, revenueMonths } from '../admin-dashboard.js';
+import { useApi } from '../hooks/use-api.js';
+import { date, money, statusLabels } from '../lib/utils.js';
+import { vietnamToday, bookingChart } from '../features/staff/dashboard.js';
+import { popularTours, revenueMonths } from '../features/admin/dashboard.js';
 import { Icon, State } from '../components/UI.jsx';
 
 const colors = ['#00bf97', '#ffb900', '#1687ff', '#ff5367', '#97a3bd', '#8259ef', '#556b8b', '#c1ccdc'];

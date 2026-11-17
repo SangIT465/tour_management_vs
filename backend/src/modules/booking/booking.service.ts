@@ -17,9 +17,16 @@ import {
   NotifyEvent,
   type DomainEventPayload,
 } from '../../common/events/domain-events.js';
-import { BookingChannel, BookingStatus, CancelRequestStatus, PassengerType, ScheduleStatus } from '../../common/enums/index.js';
-import { CancelPolicyService } from '../catalog/services/cancel-policy.service.js';
-import { TourService } from '../catalog/services/tour.service.js';
+import {
+  BookingChannel,
+  BookingStatus,
+  CancelRequestStatus,
+  ScheduleStatus,
+} from '../../common/enums/index.js';
+import { BookingPricingService } from './services/booking-pricing.service.js';
+import { BookingCancellationService } from './services/booking-cancellation.service.js';
+import { BookingReservationsService } from './services/booking-reservations.service.js';
+import { todayInVietnam } from '../../common/time/vietnam-date.js';
 import { PromotionService } from '../promotion/promotion.service.js';
 import { DepartureSchedule } from '../schedule/entities/departure-schedule.entity.js';
 import { SeatHold } from '../schedule/entities/seat-hold.entity.js';
@@ -36,7 +43,6 @@ import type {
 } from './dto/booking.dto.js';
 import { Booking } from './entities/booking.entity.js';
 import { CancelRequest } from './entities/cancel-request.entity.js';
-import type { PolicySnapshot } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
 import { InvoiceService } from './services/invoice.service.js';
 import { renderInvoice } from './templates/invoice.template.js';
@@ -53,29 +59,27 @@ import type {
 /** Thời gian giữ chỗ cho booking chờ thanh toán – khớp TTL của `seat_holds`. */
 const PAYMENT_TTL_MINUTES = 15;
 
-/** Em bé dưới ngưỡng này không chiếm ghế (ngồi cùng người lớn). */
-const INFANT_MAX_AGE = 2;
-
-/** Trẻ em dưới ngưỡng này tính giá trẻ em. */
-const CHILD_MAX_AGE = 12;
-
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
 
   constructor(
-    @InjectRepository(Booking) private readonly bookingRepo: Repository<Booking>,
-    @InjectRepository(Passenger) private readonly passengerRepo: Repository<Passenger>,
-    @InjectRepository(CancelRequest) private readonly cancelRepo: Repository<CancelRequest>,
-    @InjectRepository(Invoice) private readonly invoiceRepo: Repository<Invoice>,
-    @InjectRepository(DepartureSchedule) private readonly scheduleRepo: Repository<DepartureSchedule>,
+    @InjectRepository(Booking)
+    private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(Passenger)
+    private readonly passengerRepo: Repository<Passenger>,
+    @InjectRepository(CancelRequest)
+    private readonly cancelRepo: Repository<CancelRequest>,
+    @InjectRepository(Invoice)
+    private readonly invoiceRepo: Repository<Invoice>,
     private readonly scheduleService: ScheduleService,
-    private readonly tourService: TourService,
-    private readonly cancelPolicyService: CancelPolicyService,
+    private readonly pricing: BookingPricingService,
+    private readonly cancellations: BookingCancellationService,
+    private readonly reservations: BookingReservationsService,
     private readonly promotionService: PromotionService,
     private readonly events: EventEmitter2,
     private readonly invoices: InvoiceService,
-  ) { }
+  ) {}
 
   /**
    * Phát sự kiện audit + thông báo cho một thay đổi trạng thái booking.
@@ -92,7 +96,12 @@ export class BookingService {
     name: (typeof DomainEvents)[keyof typeof DomainEvents],
     booking: Booking,
     actor: AuthenticatedUser,
-    options: { title: string; body?: string; notificationType?: string; before?: Record<string, unknown> } = {
+    options: {
+      title: string;
+      body?: string;
+      notificationType?: string;
+      before?: Record<string, unknown>;
+    } = {
       title: '',
     },
   ): Promise<void> {
@@ -110,10 +119,15 @@ export class BookingService {
        * sẽ không bao giờ thấy thông báo. Suy ra trực tiếp từ tên sự kiện
        * (`booking.confirmed` → `BOOKING_CONFIRMED`) để không phải khai báo lặp.
        */
-      notificationType: options.notificationType ?? this.notificationTypeOf(name),
+      notificationType:
+        options.notificationType ?? this.notificationTypeOf(name),
       before: options.before ?? null,
       after: { status: booking.status, bookingCode: booking.code },
-      payload: { bookingId: booking.id, bookingCode: booking.code, status: booking.status },
+      payload: {
+        bookingId: booking.id,
+        bookingCode: booking.code,
+        status: booking.status,
+      },
     };
 
     await this.events.emitAsync('audit', new AuditEvent(action, payload));
@@ -140,12 +154,26 @@ export class BookingService {
 
     // Khách chỉ thấy booking của mình; nhân viên có `booking:read` xem được tất cả
     // (controller đã chặn quyền, ở đây chỉ áp phạm vi dữ liệu).
-    if (!this.canReadAll(actor)) qb.andWhere('booking.customerId = :actorId', { actorId: actor.id });
-    if (query.customerId) qb.andWhere('booking.customerId = :customerId', { customerId: query.customerId });
-    if (query.status) qb.andWhere('booking.status = :status', { status: query.status });
-    if (query.scheduleId) qb.andWhere('booking.scheduleId = :scheduleId', { scheduleId: query.scheduleId });
-    if (query.fromDate) qb.andWhere('schedule.startDate >= :fromDate', { fromDate: query.fromDate.slice(0, 10) });
-    if (query.toDate) qb.andWhere('schedule.startDate <= :toDate', { toDate: query.toDate.slice(0, 10) });
+    if (!this.canReadAll(actor))
+      qb.andWhere('booking.customerId = :actorId', { actorId: actor.id });
+    if (query.customerId)
+      qb.andWhere('booking.customerId = :customerId', {
+        customerId: query.customerId,
+      });
+    if (query.status)
+      qb.andWhere('booking.status = :status', { status: query.status });
+    if (query.scheduleId)
+      qb.andWhere('booking.scheduleId = :scheduleId', {
+        scheduleId: query.scheduleId,
+      });
+    if (query.fromDate)
+      qb.andWhere('schedule.startDate >= :fromDate', {
+        fromDate: query.fromDate.slice(0, 10),
+      });
+    if (query.toDate)
+      qb.andWhere('schedule.startDate <= :toDate', {
+        toDate: query.toDate.slice(0, 10),
+      });
 
     if (query.search) {
       qb.andWhere(
@@ -159,18 +187,28 @@ export class BookingService {
       .take(limit);
 
     const [bookings, total] = await qb.getManyAndCount();
-    const counts = await this.countPassengers(bookings.map((booking) => booking.id));
+    const counts = await this.countPassengers(
+      bookings.map((booking) => booking.id),
+    );
 
-    const items = bookings.map((booking) => this.toSummary(booking, counts.get(booking.id) ?? 0));
+    const items = bookings.map((booking) =>
+      this.toSummary(booking, counts.get(booking.id) ?? 0),
+    );
     return { items, total, page, limit };
   }
 
   /** Booking của chính khách đang đăng nhập – luôn giới hạn theo `customerId`. */
   async listMine(query: QueryBookingsDto, actor: AuthenticatedUser) {
-    return this.paginate({ ...query, customerId: undefined }, { ...actor, permissions: [] });
+    return this.paginate(
+      { ...query, customerId: undefined },
+      { ...actor, permissions: [] },
+    );
   }
 
-  async getDetail(id: string, actor: AuthenticatedUser): Promise<BookingDetailView> {
+  async getDetail(
+    id: string,
+    actor: AuthenticatedUser,
+  ): Promise<BookingDetailView> {
     const booking = await this.loadFull(id);
     const canReadAll = this.canReadAll(actor);
     if (!canReadAll && booking.customerId !== actor.id) {
@@ -187,40 +225,34 @@ export class BookingService {
   }
 
   async getByCode(code: string): Promise<Booking> {
-    const booking = await this.bookingRepo.findOne({ where: { code: code.trim().toUpperCase() } });
+    const booking = await this.bookingRepo.findOne({
+      where: { code: code.trim().toUpperCase() },
+    });
     if (!booking) throw new NotFoundException('Không tìm thấy booking');
     return booking;
   }
 
-  /** Báo giá trước khi đặt – cho FE thấy đúng số tiền server sẽ thu. */
   async quote(
     scheduleId: string,
     passengers: PassengerInputDto[],
     promotionCode?: string,
     customerId?: string,
   ): Promise<BookingQuote> {
-    const schedule = await this.loadScheduleOrFail(scheduleId);
-    const priced = this.pricePassengers(schedule, passengers);
-    const seatCount = this.countSeats(priced);
+    return this.pricing.quote(
+      await this.reservations.loadScheduleOrFail(scheduleId),
+      passengers,
+      promotionCode,
+      customerId,
+    );
+  }
 
-    const promotion = promotionCode ? await this.promotionService.findUsableOrFail(promotionCode, priced.subtotal, undefined, customerId) : null;
-    const discount = promotion ? promotion.calculateDiscount(priced.subtotal) : 0;
-
-    const held = await this.scheduleService.sumActiveHeldSeats(scheduleId);
-    return {
-      scheduleId,
-      tourId: schedule.tourId,
-      tourName: schedule.tour?.name ?? '',
-      startDate: schedule.startDate,
-      lines: this.groupLines(priced),
-      seatCount,
-      subtotal: priced.subtotal,
-      discount,
-      total: priced.subtotal - discount,
-      promotionCode: promotion?.code ?? null,
-      availableSeats: Math.max(schedule.availableSeats(held), 0),
-      canBook: schedule.status === ScheduleStatus.OPEN && schedule.canBook(seatCount, held),
-    };
+  async processCancel(
+    id: string,
+    actor: AuthenticatedUser,
+    dto: ProcessCancelDto,
+  ): Promise<BookingDetailView> {
+    await this.cancellations.processCancel(id, actor, dto);
+    return this.getDetail(id, actor);
   }
 
   // ===== tạo booking =====
@@ -240,81 +272,116 @@ export class BookingService {
   ): Promise<BookingDetailView> {
     const counter = options.asCounter === true;
     if (counter && !actor.permissions.includes('booking:read')) {
-      throw new ForbiddenException('Chỉ nhân viên được tạo đơn tại quầy cho khách hàng');
+      throw new ForbiddenException(
+        'Chỉ nhân viên được tạo đơn tại quầy cho khách hàng',
+      );
     }
     const customerId = await this.resolveCustomerId(dto, actor, counter);
-    const schedule = await this.loadScheduleOrFail(dto.scheduleId);
+    const schedule = await this.reservations.loadScheduleOrFail(dto.scheduleId);
 
     this.assertBookable(schedule);
-    const priced = this.pricePassengers(schedule, dto.passengers);
-    const seatCount = this.countSeats(priced);
-    if (seatCount < 1) throw new BadRequestException('Booking phải có ít nhất 1 chỗ');
+    const priced = this.pricing.pricePassengers(schedule, dto.passengers);
+    const seatCount = this.pricing.countSeats(priced);
+    if (seatCount < 1)
+      throw new BadRequestException('Booking phải có ít nhất 1 chỗ');
 
-    const id = await this.bookingRepo.manager.transaction('READ COMMITTED', async (manager) => {
-      // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
-      const hold = dto.holdId
-        ? await this.consumeHold(dto.holdId, actor.id, seatCount, manager)
-        : await this.scheduleService.holdSeats(schedule.id, actor.id, seatCount, manager);
+    const id = await this.bookingRepo.manager.transaction(
+      'READ COMMITTED',
+      async (manager) => {
+        // Bước 1: giữ chỗ. Nếu client đã giữ trước thì dùng lại hold đó, không giữ thêm.
+        const hold = dto.holdId
+          ? await this.consumeHold(dto.holdId, actor.id, seatCount, manager)
+          : await this.scheduleService.holdSeats(
+              schedule.id,
+              actor.id,
+              seatCount,
+              manager,
+            );
 
-      // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
-      const promotion = dto.promotionCode
-        ? await this.promotionService.findUsableOrFail(dto.promotionCode, priced.subtotal, manager, customerId)
-        : null;
-      const booking = manager.create(Booking, {
-        code: await this.nextBookingCode(manager),
-        scheduleId: schedule.id,
-        customerId,
-        createdBy: counter ? actor.id : null,
-        channel: dto.channel ?? (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE),
-        contactName: dto.contactName.trim(),
-        contactPhone: dto.contactPhone.trim(),
-        contactEmail: dto.contactEmail.trim().toLowerCase(),
-        subtotal: priced.subtotal,
-        discount: 0,
-        total: priced.subtotal,
-        promotionId: promotion?.id ?? null,
-        status: BookingStatus.PENDING_PAYMENT,
-        // Khách trả tiền mặt tại quầy: không cần hạn thanh toán.
-        expiresAt: counter ? null : new Date(Date.now() + PAYMENT_TTL_MINUTES * 60_000),
-        holdId: hold.holdId,
-        seatCount,
-        note: dto.note?.trim() || null,
-      });
-      booking.passengers = priced.lines.map((line) =>
-        manager.create(Passenger, {
-          bookingId: booking.id,
-          fullName: line.fullName,
-          dob: line.dob,
-          gender: line.gender ?? null,
-          idNumber: line.idNumber ?? null,
-          type: line.type,
-          unitPrice: line.unitPrice,
-        }),
-      );
-      // `recalculateTotals` là nguồn sự thật cuối cùng của `subtotal/discount/total`.
-      booking.recalculateTotals(promotion ? promotion.calculateDiscount(priced.subtotal) : 0);
+        // Bước 2: dựng booking. Tiền lấy từ `priced`, không đọc bất kỳ số nào từ client.
+        const promotion = dto.promotionCode
+          ? await this.promotionService.findUsableOrFail(
+              dto.promotionCode,
+              priced.subtotal,
+              manager,
+              customerId,
+            )
+          : null;
+        const booking = manager.create(Booking, {
+          code: await this.nextBookingCode(manager),
+          scheduleId: schedule.id,
+          customerId,
+          createdBy: counter ? actor.id : null,
+          channel:
+            dto.channel ??
+            (counter ? BookingChannel.COUNTER : BookingChannel.ONLINE),
+          contactName: dto.contactName.trim(),
+          contactPhone: dto.contactPhone.trim(),
+          contactEmail: dto.contactEmail.trim().toLowerCase(),
+          subtotal: priced.subtotal,
+          discount: 0,
+          total: priced.subtotal,
+          promotionId: promotion?.id ?? null,
+          status: BookingStatus.PENDING_PAYMENT,
+          // Khách trả tiền mặt tại quầy: không cần hạn thanh toán.
+          expiresAt: counter
+            ? null
+            : new Date(Date.now() + PAYMENT_TTL_MINUTES * 60_000),
+          holdId: hold.holdId,
+          seatCount,
+          note: dto.note?.trim() || null,
+        });
+        booking.passengers = priced.lines.map((line) =>
+          manager.create(Passenger, {
+            bookingId: booking.id,
+            fullName: line.fullName,
+            dob: line.dob,
+            gender: line.gender ?? null,
+            idNumber: line.idNumber ?? null,
+            type: line.type,
+            unitPrice: line.unitPrice,
+          }),
+        );
+        // `recalculateTotals` là nguồn sự thật cuối cùng của `subtotal/discount/total`.
+        booking.recalculateTotals(
+          promotion ? promotion.calculateDiscount(priced.subtotal) : 0,
+        );
 
-      const saved = await manager.save(Booking, booking);
+        const saved = await manager.save(Booking, booking);
 
-      // Bước 3: nối hold với booking để job dọn chỗ tìm lại được.
-      await manager.update(SeatHold, { id: hold.holdId }, { bookingId: saved.id });
+        // Bước 3: nối hold với booking để job dọn chỗ tìm lại được.
+        await manager.update(
+          SeatHold,
+          { id: hold.holdId },
+          { bookingId: saved.id },
+        );
 
-      // Tăng `usedCount` qua PromotionService: câu UPDATE có điều kiện
-      // `used_count < usage_limit` nên hai request đồng thời không vượt trần.
-      if (promotion) {
-        await this.promotionService.reserveForBooking(promotion.id, manager);
-      }
+        // Tăng `usedCount` qua PromotionService: câu UPDATE có điều kiện
+        // `used_count < usage_limit` nên hai request đồng thời không vượt trần.
+        if (promotion) {
+          await this.promotionService.reserveForBooking(promotion.id, manager);
+        }
 
-      this.logger.log(`Tạo booking ${saved.code} (${seatCount} chỗ) cho lịch ${schedule.id}`);
-      return saved.id;
-    });
+        this.logger.log(
+          `Tạo booking ${saved.code} (${seatCount} chỗ) cho lịch ${schedule.id}`,
+        );
+        return saved.id;
+      },
+    );
 
     return this.getDetail(id, actor);
   }
 
   /** Nhân viên tạo booking tại quầy; có thể chỉ định `customerId` khác người tạo. */
-  async createAtCounter(dto: CreateCounterBookingDto, actor: AuthenticatedUser): Promise<BookingDetailView> {
-    return this.create({ ...dto, channel: dto.channel ?? BookingChannel.COUNTER }, actor, { asCounter: true });
+  async createAtCounter(
+    dto: CreateCounterBookingDto,
+    actor: AuthenticatedUser,
+  ): Promise<BookingDetailView> {
+    return this.create(
+      { ...dto, channel: dto.channel ?? BookingChannel.COUNTER },
+      actor,
+      { asCounter: true },
+    );
   }
 
   // ===== xác nhận / từ chối =====
@@ -326,54 +393,83 @@ export class BookingService {
    * `sold_seats` chỉ tăng ở đây (không tăng lúc tạo) để chỗ đang chờ thanh toán
    * không bị tính là đã bán.
    */
-  async confirm(id: string, actor: AuthenticatedUser, dto: ConfirmBookingDto): Promise<BookingDetailView> {
+  async confirm(
+    id: string,
+    actor: AuthenticatedUser,
+    dto: ConfirmBookingDto,
+  ): Promise<BookingDetailView> {
     // Trả về `booking` từ transaction thay vì gán qua closure: TypeScript không
     // theo dõi được phép gán trong callback nên sẽ thu hẹp kiểu sai (`never`).
-    const changed = await this.bookingRepo.manager.transaction(async (manager) => {
-      const booking = await this.lockBooking(manager, id);
+    const changed = await this.bookingRepo.manager.transaction(
+      async (manager) => {
+        const booking = await this.reservations.lockBooking(manager, id);
 
-      if (booking.status === BookingStatus.CONFIRMED) return null; // idempotent
-      booking.transitionTo(BookingStatus.CONFIRMED);
-      booking.confirmedBy = actor.id;
-      booking.confirmedAt = new Date();
-      booking.expiresAt = null;
-      if (dto.note !== undefined) booking.note = dto.note?.trim() || null;
+        if (booking.status === BookingStatus.CONFIRMED) return null; // idempotent
+        booking.transitionTo(BookingStatus.CONFIRMED);
+        booking.confirmedBy = actor.id;
+        booking.confirmedAt = new Date();
+        booking.expiresAt = null;
+        if (dto.note !== undefined) booking.note = dto.note?.trim() || null;
 
-      await manager.save(Booking, booking);
-      await manager.increment(DepartureSchedule, { id: booking.scheduleId }, 'soldSeats', booking.seatCount);
-      await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
-      return booking;
-    });
+        await manager.save(Booking, booking);
+        await manager.increment(
+          DepartureSchedule,
+          { id: booking.scheduleId },
+          'soldSeats',
+          booking.seatCount,
+        );
+        await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
+        return booking;
+      },
+    );
 
     // Chỉ phát sự kiện khi trạng thái thực sự đổi (bỏ qua lần gọi idempotent).
     if (changed) {
-      await this.emitBookingEvent(DomainEvents.BOOKING_CONFIRMED, DomainEvents.BOOKING_CONFIRMED, changed, actor, {
-        title: `Đơn ${changed.code} đã được xác nhận`,
-        body: 'Đơn đặt tour của bạn đã được xác nhận. Vui lòng kiểm tra thông tin trong chi tiết đơn.',
-        before: { status: BookingStatus.PENDING_CONFIRMATION },
-      });
+      await this.emitBookingEvent(
+        DomainEvents.BOOKING_CONFIRMED,
+        DomainEvents.BOOKING_CONFIRMED,
+        changed,
+        actor,
+        {
+          title: `Đơn ${changed.code} đã được xác nhận`,
+          body: 'Đơn đặt tour của bạn đã được xác nhận. Vui lòng kiểm tra thông tin trong chi tiết đơn.',
+          before: { status: BookingStatus.PENDING_CONFIRMATION },
+        },
+      );
     }
 
     return this.getDetail(id, actor);
   }
 
   /** Từ chối booking (không liên hệ được khách, nghi vấn…) → nhả chỗ. */
-  async reject(id: string, actor: AuthenticatedUser, dto: RejectBookingDto): Promise<BookingDetailView> {
-    const changed = await this.bookingRepo.manager.transaction(async (manager) => {
-      const booking = await this.lockBooking(manager, id);
-      booking.transitionTo(BookingStatus.REJECTED);
-      booking.note = `${booking.note ? `${booking.note}\n` : ''}Lý do từ chối: ${dto.reason.trim()}`;
-      booking.expiresAt = null;
-      await manager.save(Booking, booking);
-      await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
-      await this.releasePromotion(manager, booking);
-      return booking;
-    });
+  async reject(
+    id: string,
+    actor: AuthenticatedUser,
+    dto: RejectBookingDto,
+  ): Promise<BookingDetailView> {
+    const changed = await this.bookingRepo.manager.transaction(
+      async (manager) => {
+        const booking = await this.reservations.lockBooking(manager, id);
+        booking.transitionTo(BookingStatus.REJECTED);
+        booking.note = `${booking.note ? `${booking.note}\n` : ''}Lý do từ chối: ${dto.reason.trim()}`;
+        booking.expiresAt = null;
+        await manager.save(Booking, booking);
+        await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
+        await this.reservations.releasePromotion(manager, booking);
+        return booking;
+      },
+    );
 
-    await this.emitBookingEvent(DomainEvents.BOOKING_REJECTED, DomainEvents.BOOKING_REJECTED, changed, actor, {
-      title: `Đơn ${changed.code} đã bị từ chối`,
-      body: `Lý do: ${dto.reason.trim()}. Chỗ đã được mở lại cho khách khác.`,
-    });
+    await this.emitBookingEvent(
+      DomainEvents.BOOKING_REJECTED,
+      DomainEvents.BOOKING_REJECTED,
+      changed,
+      actor,
+      {
+        title: `Đơn ${changed.code} đã bị từ chối`,
+        body: `Lý do: ${dto.reason.trim()}. Chỗ đã được mở lại cho khách khác.`,
+      },
+    );
 
     return this.getDetail(id, actor);
   }
@@ -382,24 +478,42 @@ export class BookingService {
    * Hủy trực tiếp (nhân viên hủy hộ, không qua yêu cầu).
    * Vẫn đi qua chính sách hủy để ghi nhận phí/hoàn tiền.
    */
-  async cancel(id: string, actor: AuthenticatedUser, reason: string): Promise<BookingDetailView> {
-    const changed = await this.bookingRepo.manager.transaction(async (manager) => {
-      const booking = await this.lockBooking(manager, id);
-      if (booking.status === BookingStatus.CANCELLED) return null;
+  async cancel(
+    id: string,
+    actor: AuthenticatedUser,
+    reason: string,
+  ): Promise<BookingDetailView> {
+    const changed = await this.bookingRepo.manager.transaction(
+      async (manager) => {
+        const booking = await this.reservations.lockBooking(manager, id);
+        if (booking.status === BookingStatus.CANCELLED) return null;
 
-      this.applyCancellation(booking, reason);
-      await manager.save(Booking, booking);
-      await this.releaseSeats(manager, booking);
-      await this.releasePromotion(manager, booking);
-      await this.markPendingCancelRequests(manager, booking.id, CancelRequestStatus.REJECTED, actor.id, reason);
-      return booking;
-    });
+        this.applyCancellation(booking, reason);
+        await manager.save(Booking, booking);
+        await this.reservations.releaseSeats(manager, booking);
+        await this.reservations.releasePromotion(manager, booking);
+        await this.markPendingCancelRequests(
+          manager,
+          booking.id,
+          CancelRequestStatus.REJECTED,
+          actor.id,
+          reason,
+        );
+        return booking;
+      },
+    );
 
     if (changed) {
-      await this.emitBookingEvent(DomainEvents.BOOKING_CANCELLED, DomainEvents.BOOKING_CANCELLED, changed, actor, {
-        title: `Đơn ${changed.code} đã bị hủy`,
-        body: `Lý do: ${reason.trim()}`,
-      });
+      await this.emitBookingEvent(
+        DomainEvents.BOOKING_CANCELLED,
+        DomainEvents.BOOKING_CANCELLED,
+        changed,
+        actor,
+        {
+          title: `Đơn ${changed.code} đã bị hủy`,
+          body: `Lý do: ${reason.trim()}`,
+        },
+      );
     }
 
     return this.getDetail(id, actor);
@@ -414,61 +528,16 @@ export class BookingService {
    * `feeAmount` + `refundAmount`. Nhờ vậy admin sửa chính sách sau đó không làm
    * thay đổi số tiền của yêu cầu đã gửi.
    */
-  async requestCancel(id: string, actor: AuthenticatedUser, dto: RequestCancelDto): Promise<BookingDetailView> {
+  async requestCancel(
+    id: string,
+    actor: AuthenticatedUser,
+    dto: RequestCancelDto,
+  ): Promise<BookingDetailView> {
     const booking = await this.loadFull(id);
     if (booking.customerId !== actor.id && !this.canReadAll(actor)) {
       throw new ForbiddenException('Bạn không có quyền hủy booking này');
     }
-    if (booking.status === BookingStatus.CANCEL_REQUESTED) {
-      throw new ConflictException('Booking đã có yêu cầu hủy đang chờ xử lý');
-    }
-
-    const openRequest = await this.cancelRepo.findOne({
-      where: { bookingId: id, status: CancelRequestStatus.PENDING },
-    });
-    if (openRequest) throw new ConflictException('Booking đã có yêu cầu hủy đang chờ xử lý');
-
-    const schedule = booking.schedule ?? (await this.loadScheduleOrFail(booking.scheduleId));
-    const startDate = schedule.startDate;
-
-    // Không cho hủy sau khi tour đã khởi hành.
-    if (startDate < this.todayInVietnam()) {
-      throw new ConflictException('Tour đã khởi hành – không thể gửi yêu cầu hủy');
-    }
-
-    const quote = await this.cancelPolicyService.quoteFee(
-      await this.resolveCancelPolicyId(schedule.tourId),
-      booking.total,
-      startDate,
-    );
-
-    const changed = await this.bookingRepo.manager.transaction(async (manager) => {
-      const locked = await this.lockBooking(manager, id);
-      locked.requestCancel();
-
-      const snapshot: PolicySnapshot = {
-        policyId: quote.policyId,
-        policyName: quote.policyName,
-        rules: quote.rules.map((rule) => ({ daysBefore: rule.daysBefore, feePercent: rule.feePercent })),
-        startDate: quote.startDate,
-      };
-
-      const request = manager.create(CancelRequest, {
-        bookingId: locked.id,
-        requestedBy: actor.id,
-        reason: dto.reason.trim(),
-        status: CancelRequestStatus.PENDING,
-        // `fee_percent` là `tinyint` nên entity `calculateFee` đã trả số nguyên.
-        feePercent: quote.feePercent,
-        feeAmount: quote.fee,
-        refundAmount: quote.refund,
-        policySnapshot: snapshot,
-      });
-
-      await manager.save(Booking, locked);
-      await manager.save(CancelRequest, request);
-      return locked;
-    });
+    const changed = await this.cancellations.request(booking, actor, dto);
 
     await this.emitBookingEvent(
       DomainEvents.BOOKING_CANCELLED,
@@ -486,59 +555,17 @@ export class BookingService {
     return this.getDetail(id, actor);
   }
 
-  /**
-   * Nhân viên xử lý yêu cầu hủy.
-   *
-   * `approve = true` → booking `CANCELLED`, tiền phí/hoàn lấy từ bản ghi
-   * `cancel_requests` (không tính lại, tránh lệch với con số đã báo khách).
-   * `approve = false` → `rejectCancel()`, booking về trạng thái cũ.
-   */
-  async processCancel(
-    id: string,
-    actor: AuthenticatedUser,
-    dto: ProcessCancelDto,
-  ): Promise<BookingDetailView> {
-    if (!dto.approve && !dto.rejectReason?.trim()) {
-      throw new BadRequestException('Từ chối yêu cầu hủy phải nêu lý do');
-    }
-
-    await this.bookingRepo.manager.transaction(async (manager) => {
-      const booking = await this.lockBooking(manager, id);
-      const request = await manager.getRepository(CancelRequest).findOne({
-        where: { bookingId: id, status: CancelRequestStatus.PENDING },
-        order: { createdAt: 'DESC' },
-      });
-      if (!request) throw new NotFoundException('Không có yêu cầu hủy nào đang chờ xử lý');
-
-      request.processedBy = actor.id;
-      request.processedAt = new Date();
-
-      if (dto.approve) {
-        request.status = CancelRequestStatus.APPROVED;
-        booking.transitionTo(BookingStatus.CANCELLED);
-        booking.statusBeforeCancel = null;
-        booking.expiresAt = null;
-        await this.releaseSeats(manager, booking);
-        await this.releasePromotion(manager, booking);
-      } else {
-        request.status = CancelRequestStatus.REJECTED;
-        request.rejectReason = dto.rejectReason!.trim();
-        booking.rejectCancel();
-      }
-
-      await manager.save(CancelRequest, request);
-      await manager.save(Booking, booking);
-    });
-
-    return this.getDetail(id, actor);
-  }
-
   // ===== hóa đơn =====
 
   /** Idempotent; actual payment is checked by InvoiceService. */
-  async issueInvoice(id: string, actor: AuthenticatedUser): Promise<InvoiceView> {
+  async issueInvoice(
+    id: string,
+    actor: AuthenticatedUser,
+  ): Promise<InvoiceView> {
     await this.getDetail(id, actor);
-    const invoice = await this.invoiceRepo.manager.transaction(manager => this.invoices.issue(id, manager));
+    const invoice = await this.invoiceRepo.manager.transaction((manager) =>
+      this.invoices.issue(id, manager),
+    );
     return this.toInvoiceView(invoice);
   }
 
@@ -548,7 +575,9 @@ export class BookingService {
     if (!this.canReadAll(actor) && booking.customerId !== actor.id) {
       throw new ForbiddenException('Bạn không có quyền xem hóa đơn này');
     }
-    const invoice = await this.invoiceRepo.findOne({ where: { bookingId: id } });
+    const invoice = await this.invoiceRepo.findOne({
+      where: { bookingId: id },
+    });
     if (!invoice) throw new NotFoundException('Booking chưa có hóa đơn');
     return this.toInvoiceView(invoice);
   }
@@ -567,7 +596,9 @@ export class BookingService {
   async expireOverdueBookings(): Promise<number> {
     const overdue = await this.bookingRepo
       .createQueryBuilder('booking')
-      .where('booking.status = :status', { status: BookingStatus.PENDING_PAYMENT })
+      .where('booking.status = :status', {
+        status: BookingStatus.PENDING_PAYMENT,
+      })
       .andWhere('booking.expiresAt IS NOT NULL')
       .andWhere('booking.expiresAt <= :now', { now: new Date() })
       .select('booking.id', 'id')
@@ -578,38 +609,26 @@ export class BookingService {
     for (const row of overdue) {
       try {
         await this.bookingRepo.manager.transaction(async (manager) => {
-          const booking = await this.lockBooking(manager, row.id);
+          const booking = await this.reservations.lockBooking(manager, row.id);
           if (booking.status !== BookingStatus.PENDING_PAYMENT) return;
           booking.transitionTo(BookingStatus.EXPIRED);
           booking.expiresAt = null;
           await manager.save(Booking, booking);
           await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
-          await this.releasePromotion(manager, booking);
+          await this.reservations.releasePromotion(manager, booking);
           expired += 1;
         });
       } catch (error) {
         // Một booking lỗi không được chặn cả lô.
-        this.logger.warn(`Không hết hạn được booking ${row.id}: ${(error as Error).message}`);
+        this.logger.warn(
+          `Không hết hạn được booking ${row.id}: ${(error as Error).message}`,
+        );
       }
     }
 
-    if (expired > 0) this.logger.log(`Đã chuyển ${expired} booking sang EXPIRED`);
+    if (expired > 0)
+      this.logger.log(`Đã chuyển ${expired} booking sang EXPIRED`);
     return expired;
-  }
-
-  // ===== nội bộ: transaction helpers =====
-
-  /**
-   * Đọc booking kèm khóa bi quan để hai thao tác đồng thời (vd thanh toán về cùng
-   * lúc nhân viên xác nhận) không ghi đè trạng thái của nhau.
-   */
-  private async lockBooking(manager: EntityManager, id: string): Promise<Booking> {
-    const booking = await manager.getRepository(Booking).findOne({
-      where: { id },
-      lock: { mode: 'pessimistic_write' },
-    });
-    if (!booking) throw new NotFoundException('Không tìm thấy booking');
-    return booking;
   }
 
   /**
@@ -619,20 +638,31 @@ export class BookingService {
    * số chỗ của hold: nếu hold còn hiệu lực thì chỗ đã được trừ trong
    * `availableSeats` nên không cần khóa lại (tránh deadlock).
    */
-  private async consumeHold(holdId: string, userId: string, seats: number, manager: EntityManager) {
+  private async consumeHold(
+    holdId: string,
+    userId: string,
+    seats: number,
+    manager: EntityManager,
+  ) {
     const hold = await manager.getRepository(SeatHold).findOne({
       where: { id: holdId },
       lock: { mode: 'pessimistic_write' },
     });
 
     if (!hold) throw new NotFoundException('Không tìm thấy lượt giữ chỗ');
-    if (hold.releasedAt) throw new ConflictException('Lượt giữ chỗ đã bị nhả – hãy giữ chỗ lại');
+    if (hold.releasedAt)
+      throw new ConflictException('Lượt giữ chỗ đã bị nhả – hãy giữ chỗ lại');
     if (hold.expiresAt.getTime() <= Date.now()) {
       throw new ConflictException('Lượt giữ chỗ đã hết hạn – hãy giữ chỗ lại');
     }
-    if (hold.bookingId) throw new ConflictException('Lượt giữ chỗ này đã được dùng cho booking khác');
+    if (hold.bookingId)
+      throw new ConflictException(
+        'Lượt giữ chỗ này đã được dùng cho booking khác',
+      );
     if (hold.userId && hold.userId !== userId) {
-      throw new ForbiddenException('Lượt giữ chỗ này không thuộc tài khoản của bạn');
+      throw new ForbiddenException(
+        'Lượt giữ chỗ này không thuộc tài khoản của bạn',
+      );
     }
     if (hold.seats !== seats) {
       throw new ConflictException(
@@ -640,26 +670,12 @@ export class BookingService {
       );
     }
 
-    return { holdId: hold.id, scheduleId: hold.scheduleId, seats: hold.seats, expiresAt: hold.expiresAt };
-  }
-
-  /** Giảm `sold_seats` khi hủy booking đã xác nhận, rồi nhả hold còn lại. */
-  private async releaseSeats(manager: EntityManager, booking: Booking): Promise<void> {
-    if (booking.confirmedAt) {
-      const schedule = await manager.getRepository(DepartureSchedule).findOne({
-        where: { id: booking.scheduleId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (schedule) {
-        schedule.soldSeats = Math.max(schedule.soldSeats - booking.seatCount, 0);
-        // Lịch đã FULL mà có chỗ trả lại thì mở bán tiếp.
-        if (schedule.status === ScheduleStatus.FULL && schedule.availableSeats() > 0) {
-          schedule.status = ScheduleStatus.OPEN;
-        }
-        await manager.save(DepartureSchedule, schedule);
-      }
-    }
-    await this.scheduleService.releaseHoldsByBooking(booking.id, manager);
+    return {
+      holdId: hold.id,
+      scheduleId: hold.scheduleId,
+      seats: hold.seats,
+      expiresAt: hold.expiresAt,
+    };
   }
 
   /** Đánh dấu các yêu cầu hủy còn treo khi booking bị hủy trực tiếp. */
@@ -678,7 +694,10 @@ export class BookingService {
         status,
         processedBy: actorId,
         processedAt: new Date(),
-        rejectReason: status === CancelRequestStatus.REJECTED ? `Booking đã được hủy trực tiếp: ${reason}` : null,
+        rejectReason:
+          status === CancelRequestStatus.REJECTED
+            ? `Booking đã được hủy trực tiếp: ${reason}`
+            : null,
       })
       .where('booking_id = :bookingId', { bookingId })
       .andWhere('status = :pending', { pending: CancelRequestStatus.PENDING })
@@ -694,19 +713,6 @@ export class BookingService {
     booking.statusBeforeCancel = null;
     booking.expiresAt = null;
     booking.note = `${booking.note ? `${booking.note}\n` : ''}Hủy: ${reason.trim()}`;
-  }
-
-  // ===== nội bộ: đọc dữ liệu =====
-
-  private async loadScheduleOrFail(scheduleId: string): Promise<DepartureSchedule> {
-    const schedule = await this.scheduleRepo
-      .createQueryBuilder('schedule')
-      .innerJoinAndSelect('schedule.tour', 'tour')
-      .where('schedule.id = :scheduleId', { scheduleId })
-      .andWhere('tour.deletedAt IS NULL')
-      .getOne();
-    if (!schedule) throw new NotFoundException('Không tìm thấy lịch khởi hành');
-    return schedule;
   }
 
   private async loadFull(id: string): Promise<Booking> {
@@ -730,21 +736,6 @@ export class BookingService {
     return booking;
   }
 
-  /**
-   * Nhả lượt dùng mã khi booking không còn giữ chỗ (hủy / từ chối / hết hạn).
-   * Chỉ gọi khi booking thực sự có gắn mã để tránh UPDATE vô ích.
-   */
-  private async releasePromotion(manager: EntityManager, booking: Booking): Promise<void> {
-    if (!booking.promotionId) return;
-    await this.promotionService.releaseForBooking(booking.promotionId, manager);
-  }
-
-  /** Chính sách hủy gắn với tour của lịch. */
-  private async resolveCancelPolicyId(tourId: string): Promise<string> {
-    const tour = await this.tourService.getOrFail(tourId);
-    return tour.cancelPolicyId;
-  }
-
   /** Khách tại quầy: dùng `customerId` chỉ định, nếu không thì lấy người đang đăng nhập. */
   private async resolveCustomerId(
     dto: CreateBookingDto,
@@ -753,7 +744,10 @@ export class BookingService {
   ): Promise<string> {
     const requested = (dto as CreateCounterBookingDto).customerId;
     if (!requested) return actor.id;
-    if (!counter) throw new ForbiddenException('Chỉ nhân viên mới được đặt tour cho khách khác');
+    if (!counter)
+      throw new ForbiddenException(
+        'Chỉ nhân viên mới được đặt tour cho khách khác',
+      );
     return requested;
   }
 
@@ -762,110 +756,13 @@ export class BookingService {
       throw new ConflictException('Lịch khởi hành chưa mở bán');
     }
     if (schedule.status !== ScheduleStatus.OPEN) {
-      throw new ConflictException(`Lịch khởi hành đang ở trạng thái ${schedule.status} – không thể đặt`);
+      throw new ConflictException(
+        `Lịch khởi hành đang ở trạng thái ${schedule.status} – không thể đặt`,
+      );
     }
-    if (schedule.startDate < this.todayInVietnam()) {
+    if (schedule.startDate < todayInVietnam()) {
       throw new ConflictException('Ngày khởi hành đã qua');
     }
-  }
-
-  // ===== nội bộ: tính giá (server là nguồn sự thật) =====
-
-  /**
-   * Suy loại hành khách từ `dob` và lấy giá tương ứng **từ lịch khởi hành**.
-   *
-   * Client chỉ gửi `fullName` + `dob`, mọi con số tiền đều do server quyết định –
-   * đây là chốt chặn gian lận của luồng đặt tour.
-   */
-  private pricePassengers(schedule: DepartureSchedule, passengers: PassengerInputDto[]) {
-    const startDate = schedule.startDate;
-    const lines = passengers.map((passenger) => {
-      const dob = this.normalizeDate(passenger.dob);
-      const age = this.ageAt(dob, startDate);
-      const type = this.classify(age);
-      const unitPrice = this.priceFor(schedule, type);
-
-      return {
-        fullName: passenger.fullName.trim(),
-        dob,
-        gender: passenger.gender?.trim() || null,
-        idNumber: passenger.idNumber?.trim() || null,
-        type,
-        unitPrice,
-        age,
-      };
-    });
-
-    const subtotal = lines.reduce((sum, line) => sum + line.unitPrice, 0);
-    return { lines, subtotal };
-  }
-
-  private classify(age: number): PassengerType {
-    if (age < INFANT_MAX_AGE) return PassengerType.INFANT;
-    if (age < CHILD_MAX_AGE) return PassengerType.CHILD;
-    return PassengerType.ADULT;
-  }
-
-  private priceFor(schedule: DepartureSchedule, type: PassengerType): number {
-    switch (type) {
-      case PassengerType.INFANT:
-        return Number(schedule.priceInfant ?? 0);
-      case PassengerType.CHILD:
-        return Number(schedule.priceChild ?? 0);
-      default:
-        return Number(schedule.priceAdult ?? 0);
-    }
-  }
-
-  /** Em bé không chiếm ghế riêng. */
-  private countSeats(priced: { lines: { type: PassengerType }[] }): number {
-    return priced.lines.filter((line) => line.type !== PassengerType.INFANT).length;
-  }
-
-  private groupLines(priced: { lines: { type: PassengerType; unitPrice: number }[] }) {
-    const order: PassengerType[] = [PassengerType.ADULT, PassengerType.CHILD, PassengerType.INFANT];
-    const grouped = new Map<PassengerType, { quantity: number; unitPrice: number }>();
-
-    for (const line of priced.lines) {
-      const current = grouped.get(line.type);
-      if (current) current.quantity += 1;
-      else grouped.set(line.type, { quantity: 1, unitPrice: line.unitPrice });
-    }
-
-    return order
-      .filter((type) => grouped.has(type))
-      .map((type) => {
-        const item = grouped.get(type)!;
-        return {
-          type,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: item.quantity * item.unitPrice,
-        };
-      });
-  }
-
-  /** Tuổi tại ngày khởi hành – tính trên chuỗi `YYYY-MM-DD` để không lệch múi giờ. */
-  private ageAt(dob: string, atDate: string): number {
-    const [dy, dm, dd] = dob.split('-').map(Number);
-    const [ay, am, ad] = atDate.slice(0, 10).split('-').map(Number);
-
-    let age = ay - dy;
-    if (am < dm || (am === dm && ad < dd)) age -= 1;
-    return age;
-  }
-
-  private normalizeDate(value: string): string {
-    return value.slice(0, 10);
-  }
-
-  private todayInVietnam(): string {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
   }
 
   // ===== nội bộ: sinh mã =====
@@ -875,7 +772,7 @@ export class BookingService {
    * hiện tại; `uq_bookings_code` là chốt chặn cuối nếu hai request đua nhau.
    */
   private async nextBookingCode(manager: EntityManager): Promise<string> {
-    const year = this.todayInVietnam().slice(2, 4);
+    const year = todayInVietnam().slice(2, 4);
     const prefix = `BK${year}`;
 
     const row = await manager
@@ -885,14 +782,18 @@ export class BookingService {
       .where('booking.code LIKE :prefix', { prefix: `${prefix}%` })
       .getRawOne<{ maxCode: string | null }>();
 
-    const current = row?.maxCode ? Number(String(row.maxCode).replace(/\D/g, '').slice(-4)) : 0;
+    const current = row?.maxCode
+      ? Number(String(row.maxCode).replace(/\D/g, '').slice(-4))
+      : 0;
     const next = Number.isFinite(current) ? current + 1 : 1;
     return `${prefix}${String(next).padStart(4, '0')}`;
   }
 
   // ===== nội bộ: dựng view =====
 
-  private async countPassengers(bookingIds: string[]): Promise<Map<string, number>> {
+  private async countPassengers(
+    bookingIds: string[],
+  ): Promise<Map<string, number>> {
     if (bookingIds.length === 0) return new Map();
 
     const rows = await this.passengerRepo
@@ -906,7 +807,10 @@ export class BookingService {
     return new Map(rows.map((row) => [row.bookingId, Number(row.count)]));
   }
 
-  private toSummary(booking: Booking, passengerCount: number): BookingSummaryView {
+  private toSummary(
+    booking: Booking,
+    passengerCount: number,
+  ): BookingSummaryView {
     return {
       id: booking.id,
       code: booking.code,
@@ -934,7 +838,9 @@ export class BookingService {
   }
 
   private toDetail(booking: Booking): BookingDetailView {
-    const passengers = (booking.passengers ?? []).map((passenger) => this.toPassengerView(passenger));
+    const passengers = (booking.passengers ?? []).map((passenger) =>
+      this.toPassengerView(passenger),
+    );
     return {
       ...this.toSummary(booking, passengers.length),
       note: booking.note ?? null,
@@ -942,7 +848,9 @@ export class BookingService {
       confirmedBy: booking.confirmedBy ?? null,
       statusBeforeCancel: booking.statusBeforeCancel ?? null,
       passengers,
-      cancelRequests: (booking.cancelRequests ?? []).map((request) => this.toCancelRequestView(request)),
+      cancelRequests: (booking.cancelRequests ?? []).map((request) =>
+        this.toCancelRequestView(request),
+      ),
       invoice: booking.invoice ? this.toInvoiceView(booking.invoice) : null,
       updatedAt: booking.updatedAt,
     };
@@ -1022,7 +930,9 @@ export class BookingService {
       .createQueryBuilder()
       .update(Booking)
       .set({ status: BookingStatus.COMPLETED })
-      .where('status = :bookingStatus', { bookingStatus: BookingStatus.CONFIRMED })
+      .where('status = :bookingStatus', {
+        bookingStatus: BookingStatus.CONFIRMED,
+      })
       .andWhere(
         'schedule_id IN (SELECT id FROM departure_schedules WHERE status = :scheduleStatus)',
         { scheduleStatus: ScheduleStatus.COMPLETED },
@@ -1030,7 +940,10 @@ export class BookingService {
       .execute();
 
     const affected = result.affected ?? 0;
-    if (affected > 0) this.logger.log(`Đã hoàn tất ${affected} booking của các lịch đã kết thúc`);
+    if (affected > 0)
+      this.logger.log(
+        `Đã hoàn tất ${affected} booking của các lịch đã kết thúc`,
+      );
     return affected;
   }
 

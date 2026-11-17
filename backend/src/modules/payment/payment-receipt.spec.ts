@@ -3,6 +3,7 @@ import { Booking } from '../booking/entities/booking.entity.js';
 import { Payment } from './entities/payment.entity.js';
 import { BookingStatus, PaymentMethod, PaymentStatus, WebhookResult } from '../../common/enums/index.js';
 import type { AuthenticatedUser } from '../../common/auth/auth.types.js';
+import { PaymentReceiptService } from './services/payment-receipt.service.js';
 
 function fixture() {
   const booking = Object.assign(new Booking(), { id: 'booking', code: 'BK260001', customerId: 'customer', status: BookingStatus.PENDING_PAYMENT, total: 900_000 });
@@ -19,7 +20,8 @@ function fixture() {
   const invoices = { issue: vi.fn().mockResolvedValue(invoice) };
   const mail = { enqueue: vi.fn().mockResolvedValue(undefined) };
   const repo: any = { ...paymentRepository, manager };
-  const service = new PaymentService(repo, {} as any, eventRepository as any, { getOrFail: vi.fn().mockResolvedValue(booking) } as any, {} as any, invoices as any, mail as any);
+  const receipts = new PaymentReceiptService(invoices as any, mail as any);
+  const service = new PaymentService(repo, {} as any, eventRepository as any, { getOrFail: vi.fn().mockResolvedValue(booking) } as any, {} as any, receipts, {} as any);
   const webhook = { txnRef: 'REF001', gateway: 'VNPAY', gatewayTxnNo: 'GATE001', amount: 900_000, success: true };
   return { service, booking, payment, manager, invoices, mail, webhook, paymentRepository };
 }

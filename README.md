@@ -18,11 +18,11 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 Tạo database `tour_management` trong MySQL nếu chưa có, dùng charset `utf8mb4`.
-`database/database.sql` hiện trống; khởi tạo bảng bằng entity:
+Khởi tạo hoặc nâng cấp bảng bằng migration, sau đó tạo dữ liệu mẫu:
 
 ```powershell
 npm.cmd run db:check
-npm.cmd run db:sync
+npm.cmd run db:migrate
 npm.cmd run db:seed
 npm.cmd run db:seed:tours
 npm.cmd run db:seed:images
@@ -30,8 +30,9 @@ npm.cmd run db:seed:promotions
 npm.cmd run db:seed:destinations
 ```
 
-`db:sync` chỉ chạy khi database chưa có bảng. Nếu database đã có dữ liệu, dùng migration để cập nhật schema.
-Cờ `--force` xóa toàn bộ bảng và dữ liệu, chỉ dùng khi chủ động muốn dựng lại database.
+`db:migrate` dùng chung cho database mới và schema đầy đủ đã cài theo cách cũ;
+chạy lại chỉ áp dụng migration còn thiếu. Giữ `DB_SYNCHRONIZE=false`.
+Quy trình nâng cấp và giới hạn được mô tả trong [hướng dẫn database](docs/DATABASE.md).
 Các script database build vào `backend/dist-scripts`, tách khỏi bản build server trong `backend/dist`.
 
 ## Chạy project
@@ -90,6 +91,13 @@ xử lý lỗi **could not connect to the server** có trong [mobile/README.md](
 Trong `backend`: `npm.cmd run build`, `npm.cmd test`, `npm.cmd run lint`, `npm.cmd run test:e2e`.
 E2e cần database đã được khởi tạo và kiểm tra các API công khai, xác thực và validation.
 
-Trong `frontend`: `npm.cmd run build`, `npm.cmd test`.
+Trong `frontend`: `npm.cmd run build`, `npm.cmd run lint`, `npm.cmd test`.
+
+Từ gốc dự án: `npm.cmd run check` chạy kiểm tra chung;
+`npm.cmd run check:integration` chạy migration, e2e, checkout và search trên MySQL.
+GitHub Actions có workflow kiểm tra khi push `main` hoặc tạo pull request.
+
+Xem [cấu trúc và quy ước dự án](docs/ARCHITECTURE.md) để biết vị trí component,
+mã nghiệp vụ, CSS, migration và các bộ kiểm thử.
 
 Không sửa trực tiếp `backend/dist`: đây là mã sinh ra từ `backend/src` khi build.

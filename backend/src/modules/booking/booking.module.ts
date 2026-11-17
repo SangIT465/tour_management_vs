@@ -11,6 +11,9 @@ import { CancelRequest } from './entities/cancel-request.entity.js';
 import { Invoice } from './entities/invoice.entity.js';
 import { Passenger } from './entities/passenger.entity.js';
 import { InvoiceService } from './services/invoice.service.js';
+import { BookingPricingService } from './services/booking-pricing.service.js';
+import { BookingCancellationService } from './services/booking-cancellation.service.js';
+import { BookingReservationsService } from './services/booking-reservations.service.js';
 
 /**
  * Đặt tour + hủy + hóa đơn.
@@ -30,7 +33,7 @@ import { InvoiceService } from './services/invoice.service.js';
     PromotionModule,
   ],
   controllers: [BookingController],
-  providers: [BookingService, InvoiceService],
+  providers: [BookingService, InvoiceService, BookingPricingService, BookingCancellationService, BookingReservationsService],
   exports: [BookingService, InvoiceService],
 })
 export class BookingModule { }

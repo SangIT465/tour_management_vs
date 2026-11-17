@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { money, date, queryString, safeNext, statusLabels } from '../src/utils.js';
+import { money, date, queryString, safeNext, statusLabels } from '../src/lib/utils.js';
 
 test('money distinguishes unavailable prices and free tickets', () => {
   assert.equal(money(null), 'Liên hệ');
